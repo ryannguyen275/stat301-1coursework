@@ -1,0 +1,183 @@
+---
+title: "L01 Introduction"
+subtitle: "Data Science 1 with R (STAT 301-1)"
+author: "Ryan Nguyen"
+format:
+  html:
+    toc: true
+    self-contained: true
+    link-external-newwindow: true
+editor_options: 
+  chunk_output_type: console
+  
+execute:
+  warning: false
+  message: false
+---
+## Overview
+
+1.  Ensure software for this course is properly installed and functional
+2.  Develop and follow a proper workflow that is generalizable
+3.  Explore basics of RStudio and quarto
+4.  Work together to construct and run some basic code
+5.  Introduce useful tips and tricks when working in RStudio
+
+**Don't worry if you cannot do everything here by yourself.** You are just getting started and the learning curve is steep, but remember that the instructional team and your classmates will be there to provide support. Persevere and put forth an honest effort and this course will payoff.
+
+## Load Packages
+
+```{r}
+#| label: load-pkgs
+#| message: false
+library(tidyverse)
+library(skimr)
+
+```
+
+
+## Datasets
+
+We will use the `catsvdogs.txt` dataset. See the codebook, `catsvdogs_codebook.txt` for a detailed description of the variables.
+
+## Tasks
+
+Complete the following tasks. For many of these you'll need to simply **indicate that you have completed the task**.
+
+### Task 1
+
+Download and install [R Software](https://cran.rstudio.com/).
+
+> COMPLETED
+
+<br>
+
+### Task 2
+
+1.  Download and install [RStudio](https://www.rstudio.com/products/rstudio/download4/).
+2.  Open RStudio and ensure it and R have been properly installed.
+3.  Go to **Tools** \> **Global Options** and change the two indicated settings below and click **Apply**. Your other options are likely different than what is pictured. This is okay and we suggest you leave them as is until you become more familiar with RStudio.
+
+> COMPLETED
+
+<br>
+
+### Task 3
+
+Install the following packages:
+
+-   `tidyverse`
+-   `skimr`
+-   `janitor`
+-   `nycflights13`
+-   `gapminder`
+-   `Lahman`
+-   `devtools`
+
+> COMPLETED
+
+<br>
+
+### Task 4
+
+Since organization is essential for any data science project or work, we should begin by setting up an organizational structure for this course and its contents.
+
+0.  Setup a directory/folder on your laptop that will contain all your materials and work for this course. You may already have one setup and named. We will setup this directory and call it `stat301-1`. Where this is located on your laptop is completely up to you.
+
+1.  Within `stat301-1/`, place a copy of the course syllabus for future reference. We also will create a new sub-directory that will contain all labs for this course. For ease let us call it `labs`. So now we have `stat301-1/labs/`.
+
+2.  Download `L01_introduction.zip` from Canvas.
+
+3.  Unzip/decompress `L01_introduction.zip` and place the unzipped/decompressed folder in `/stat301-1/labs`. So you should now have `stat301-1/labs/L01_introduction/`. The `L01_introduction/` sub-directory contains all materials for lab L01 Introduction.
+
+4.  Open RStudio and create a project for the *existing directory* `L01_introduction/`.
+
+5.  Rename `template_L01.qmd` to your `Lastname_Firstname_L01.qmd`
+
+6.  Render the file with `Cmd/Ctrl + Shift + K` or click the **Render button**.
+
+> COMPLETED
+
+<br>
+
+### Task 5 (optional)
+
+It is always handy to have a versatile text editor and I would suggest downloading [Sublime Text](https://www.sublimetext.com/). It is free to use.
+
+> COMPLETED
+
+<br>
+
+## Exercises
+
+### Exercise 1
+
+Suppose a random variable $X$ has finite variance, then as we take larger random samples (i.e. as $n$ increases) we have that $$\bar{X} \sim N\left(\mu_{\bar{X}}=\mu_X, \sigma^2_{\bar{X}} = \frac{\sigma_X^2}{n}\right)$$ This is an informal statement of which important statistical theorem?
+
+<br>
+
+**ANSWER:**
+
+This is an informal statement of the [Central Limit Theorem](https://en.wikipedia.org/wiki/Central_limit_theorem)) .
+
+<br>
+
+### Exercise 2
+
+If the mathematical notation in Exercise 1 does not compile correctly you will need to download and install either [MikTex](https://miktex.org/download) for windows machines or [MacTex](https://tug.org/mactex/mactex-download.html) for Mac OS machines.
+
+Even if the equation in Exercise 1 does compile, you may need to download MikTex/MacTex to compile pdfs. We highly suggest being able to compile pdf's, but it is not a requirement for undergraduates in this course.
+
+**Graduate Students are required to be able to compile pdf's.** It is more for your own good going forward, than being directly beneficial for this course. Please include a complied pdf of this assignment in addition to the standard submission files (.R, .qmd, & .html).
+
+> COMPLETED
+
+<br>
+
+### Exercise 3
+
+Read the codebook for the `catsvdogs.txt` dataset and upload it using `readr::read_delim()` function. The `readr::` tells you that the function `read_delim()` function is from the `readr` package which is part of the `tidyverse`.
+
+<br>
+
+```{r}
+#| label: data-catdog
+
+catdog <- read_delim("data/catsvdogs.txt", delim = "|")
+```
+
+<br>
+
+What was the percentage of dog owners for Illinois in 2012?
+
+**ANSWER:**
+
+32.4% of households owns dogs in Illinois in 2012.
+
+<br>
+
+### Exercise 4
+
+Apply the `skim()` function from the `skimr` package to the `catdog` dataset. What does the `skim()` function return?
+
+**ANSWER:**
+
+```{r}
+skim_without_charts(catdog)
+```
+
+The skim() function returns a data summary of the data set, including information such as % missing, mean, sd, percentiles, min, max, etc. 
+
+<br>
+
+### Exercise 5
+
+Calculate the mean of `percent_dog_owners`. Do you think this is a reasonable estimate for the percent of US dog owners? Why or why not?
+
+**ANSWER:**
+
+```{r}
+catdog %>% 
+  summarize(mean = mean(percent_dog_owners))
+```
+
+The mean of 'percent_dog_owners' is about 37%. This does not seem to be a reasonable estimate for the percent of US dog owners, as it does not take into account the various populations in each state, giving the same weight to states with vastly different populations. However, when finding the weighted mean based on the amount of households in each state, we found the weighted mean was actually 36.5%, so the 37% found was not too far off. 

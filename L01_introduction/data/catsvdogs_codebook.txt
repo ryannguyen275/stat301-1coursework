@@ -1,0 +1,22 @@
+Codebook for catsvdogs.txt dataset
+
+location: 48 Contiguous US states and Washington DC
+num_households: Total number of nouseholds (in 1000s)  
+percent_households_with_pets: Percentage of households with pets
+num_pet_households: Total number of housholds that own pets (in 1000s)
+percent_dog_owners: Percentage of dog owning households
+dog_owning_households: Total number of dog owning households (in 1000s)
+mean_num_dogs_per_households: Mean number of dogs per dog owning households
+dog_population: Total number of dogs (in 1000s)
+percent_cat_owners: Percentage of cat owning households
+cat_owning_households: Total number of cat owning households (in 1000s)
+mean_num_cats: Mean number of cats per cat owning household
+cat_population: Total number of cats (in 1000s)
+
+Notes:
+Dataset downloaded from
+https://public.tableau.com/s/resources
+The data was provided by the American Veterinary Medical Association from their
+US pet ownership & demographics sourcebook (2012)
+https://www.avma.org/kb/resources/statistics/pages/market-research-statistics-us-pet-ownership-demographics-sourcebook.aspx
+50000 household survey
