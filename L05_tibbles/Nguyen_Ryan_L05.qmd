@@ -1,0 +1,234 @@
+---
+title: "L05 Tibbles"
+subtitle: "Data Science 1 with R (STAT 301-1)"
+author: "Ryan Nguyen"
+
+format:
+  html:
+    toc: true
+    embed-resources: true
+    code-fold: show
+    link-external-newwindow: true
+    
+execute:
+  warning: false
+  
+from: markdown+emoji 
+---
+
+## Overview
+
+The goal of this lab is to better understand the basic data structure called a "tibble," which is used throughout the `tidyverse` instead of R's traditional `data.frame`. Tibbles are data frames, but they tweak some of R's older behaviors to make life a little easier by avoiding unintentional mistakes/errors. The `tibble` package provides the framework for these opinionated data frames which make working with data in the tidyverse possible -- [`tibble` package home page](http://tibble.tidyverse.org/index.html).
+
+## Load Packages
+
+```{r}
+#| label: load-pkgs
+
+# Loading package(s)
+library(tidyverse, quietly = T)
+library(tibble)
+library(nycflights13)
+```
+
+## Datasets 
+
+This lab utilizes the `mtcars` and `flights` datasets contained in the packages `datasets` (automatically loaded with base R) and `nycflights13`, respectively. For one of the problems, you may opt to use one of our other familiar datasets, `diamonds` or `mpg`, which are contained in `ggplot2`.   
+
+## Exercises
+
+### Exercise 1 
+
+Please read the vignette for the `tibble` package.
+
+```{r}
+#| label: ex-01
+#| eval: false
+
+# Access vignette
+vignette("tibble")
+```
+
+
+> COMPLETED
+
+### Exercise 2
+
+Demonstrate how to manually input the data table below into R using each of these functions:
+
+* `tibble()`
+* `tribble()` 
+
+price |  store  | ounces
+------|---------|---------
+3.99  | target  | 128
+3.75  | walmart | 128
+3.00  | amazon  | 128
+
+```{r}
+tibble(
+  `price` = c(3.99, 3.75, 3.00),
+  `store` = c("target", "walmart", "amazon"),
+  `ounces` = rep(128, 3)
+)
+
+
+tribble(
+  ~price, ~store, ~ounces,
+  #-----|-------|--------
+  3.99, "target", 128,
+  3.75, "walmart", 128,
+  3.00, "amazon", 128
+)
+```
+
+
+### Exercise 3
+
+How can you tell if an object is a tibble? Consider including an example or two. (Hint: try printing `mtcars`, which is a regular data frame).
+
+```{r}
+data.frame(mtcars)
+
+as_tibble(mtcars)
+```
+
+**ANSWER:**
+The easiest way to tell that something is a tibble is that it will say "A Tibble: r x c" at the top, whereas a data frame will say "df[r x c]". Additionally, tibbles will never use row names since they want to store variables in a consistent way. We can see above that the data frame shows the car names in each row, whereas the tibble omits this. 
+
+### Exercise 4 
+
+Turn `mtcars` into a tibble and ask R to print only the first 4 observations/rows. Consider using a `slice_*()` function.
+
+```{r}
+as_tibble(mtcars) %>% 
+  slice_head(n = 4)
+```
+
+
+### Exercise 5 
+
+Run the following operations on `df` as a data frame. Then turn `df` into a tibble and run the operations again. What changes? Why might the default data frame behaviors cause problems or frustration?
+
+```{r}
+#| label: ex-05
+
+df <- data.frame(abc = 1, xyz = "a")
+df$x
+df[, "xyz"]
+df[, c("abc", "xyz")]
+
+df2 <- tibble(abc = 1, xyz = "a")
+df2$x
+df2[, "xyz"]
+df2[, c("abc", "xyz")]
+```
+**ANSWER:**
+When running the $ operation on the data frame, it is still able to return "a" because the data frame is running partial matching. On the other hand, when running the operation on the tibble, it returns a warning and null since the column does not exist; tibbles never do partial matching. This could cause a problems in the data frame because if you have a typo or are searching for a really specific variable, it will return a partial match, and not warn you if you made a mistake. It could potentially return data that you were not even looking for. For the second operation, when subsetting, tibbles always return another tibble, wheras the data frame returned just a vector. Lastly, when returning the entire data frame/tibble, they appear to be similar, besides the labels at the top. 
+
+### Exercise 6
+
+If you have the name of a variable stored as an object, for example `var <- "mpg"`, how can you extract the specified variable from a tibble? Write code to demonstrate.
+
+```{r}
+
+as_tibble(mpg)
+var <- "displ"
+mpg %>% 
+  select(var)
+
+```
+
+
+### Exercise 7
+
+How is subsetting via `[[ ]]` different from using `select()` when extracting columns of a tibble? (Hint: Investigate using one of our familiar datasets --- `flights`, `diamonds`, or `mpg`.)
+
+```{r}
+mpg[["cyl"]]
+
+mpg %>% 
+  select(cyl)
+```
+**ANSWER:**
+When subsetting via `[[ ]]`, it returns all of the vectors within the column. On the other hand, when extracting columns via tibble and `select()`, it returns a tibble with the one column that you extracted.
+
+### Exercise 8
+
+Practice referring to non-syntactic names in the following data frame by:
+
+```{r}
+#| label: ex-08
+
+# toy dataset
+annoying <- tibble(
+  `1` = 1:10,
+  `2` = `1` * 2 + rnorm(length(`1`))
+)
+
+print(annoying)
+```
+
+a. Extracting the variable called 1.
+b. Plotting a scatterplot of 1 vs 2.
+c. Creating a new column called 3 which is 2 divided by 1.
+d. Renaming the columns to one, two and three.
+
+```{r}
+annoying$"1"
+
+annoying %>% 
+  ggplot(aes(x = .data[["2"]], y = .data[["1"]])) +
+  geom_point()
+
+annoying2 <- annoying %>% 
+  mutate("3" = .data[["2"]] / .data [["1"]])
+
+annoying2
+
+rename(annoying2, 
+       "one" = "1",
+       "two" = "2",
+       "three" = "3")
+
+```
+
+
+### Exercise 9 
+
+What does `tibble::enframe()` do? When might you use it? (Hint: A named vector is one where each value has a specified name -- examples in code below.)
+
+```{r}
+#| label: ex-09
+
+# example of a named vector
+named_vector <- c("I" = 3.14, "love" = 2.72, "stats!" = 1.61)
+named_vector
+
+enframe(named_vector)
+
+# Consider how enframe() would be helpful in the following example:
+
+# random sample of 1000 from a normal distribution
+foo <- rnorm(n = 1000, mean = 100, sd = 15)
+summary(foo)
+
+foo
+
+enframe(foo)
+```
+**ANSWER:**
+`enframe()` converts vectors or lists to one or two column data frames/tibbles with the vectors split into columns. One might use it when there is a large list or amount of vectors, and you want to nicely split it up into organized, tidy columns in a tibble. It could be useful in a named vector where each value has a specified name, because you can see the specified name clearly in columns, as well as mutate the columns if needed. 
+
+### Exercise 10 
+
+Apply `tibble::glimpse()` to the `flights` dataset. Then apply `print()` to `flights`. When/why might `glimpse()` be more useful than `print()`?
+
+```{r}
+tibble::glimpse(flights)
+
+print(flights)
+```
+**ANSWER:**
+`tibble::glimpse` might be more helpful than `print()` when you want to see all of the variables listed out on the left side, especially when you have a large number of columns or large data sets. It gives you a total view of the data set. 
+
