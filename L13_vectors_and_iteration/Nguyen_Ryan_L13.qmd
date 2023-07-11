@@ -1,0 +1,268 @@
+---
+title: "L13 Vectors and Iteration"
+subtitle: "Data Science 1 with R (STAT 301-1)"
+author: "Ryan Nguyen"
+
+format:
+  html:
+    toc: true
+    embed-resources: true
+    code-fold: show
+    link-external-newwindow: true
+    
+execute:
+  warning: false
+  
+from: markdown+emoji  
+---
+
+## Overview
+
+The goal of this lab is to improve our understanding of vectors (a basic structure in R) and iterative programming skills, using the `purrr` package from the tidyverse. This resource may help:
+
+-   [`purrr` tidyverse homepage](http://purrr.tidyverse.org/)
+
+## Load Packages
+
+```{r}
+#| label: load-pkgs
+
+# Loading package(s)
+library(tidyverse)
+library(nycflights13)
+```
+
+## Datasets
+
+Datasets referenced in this lab are either from the tidyverse or from the familiar `nycflights13` package.
+
+## Exercises
+
+### Exercise 1
+
+What does `mean(is.na(x))` tell you about a vector `x`? What about `sum(!is.finite(x))`?
+
+```{r}
+x <- c(10, 3, NA, 5, 8, 1, NA, Inf)
+
+mean(is.na(x))
+
+sum(!is.finite(x))
+```
+
+**ANSWER:**
+`mean(is.na(x))` finds the proportion of the number of NA values to total number of values. `sum(!is.finite(x))` finds the number of non-finite values in the vector, including NA, Inf, and -Inf values.
+
+### Exercise 2
+
+What happens if you subset a tibble as if you're subsetting a list? What are the key differences between a list and a tibble?
+
+```{r}
+x <- tibble(a = 1:3, bc = 4:6)
+x[("a")]
+x[1,]
+x[1]
+```
+**ANSWER:**
+You can subset a tibble the same way you subset a list since a tibble is simply a list of columns. The main differences between a tibble and list is that elements in tibbles (columns) must have the same number of rows, whereas elements in lists (vectors) can be different lengths.
+
+### Exercise 3
+
+Try to make a tibble containing columns with different lengths. What happens?
+
+```{r}
+# x <- tibble(a = 1:3, bc = 4:5)
+```
+**ANSWER:**
+We receive an error saying that tibble columns must have compatible sizes.
+
+### Exercise 4
+
+Is it possible to have a list as a column of a tibble?
+
+**ANSWER:**
+
+Yes, it is possible to have a list as a column of a tibble, as long as it is the same length as the other columns in the tibble.
+
+### Exercise 5
+
+Write for loops to:
+
+-   Compute the mean of every column in `mtcars`.
+-   Determine the type of each column in `nycflights13::flights`.
+-   Compute the number of unique values in each column of `iris`.
+-   Generate 10 random draws from a normal distribution with $\mu =$ −10, 0, 10, and 100.
+
+Think about the output, sequence, and body of each loop before you start writing it.
+
+```{r}
+
+# the mean of every column in `mtcars`
+car_mean <- list()
+
+for(i in 1:ncol(mtcars)) {
+  col <- mtcars[,i]
+  
+  if(is.numeric(col)) {
+  car_mean[[ names(mtcars)[i] ]] <- mean(col)
+  }
+}
+
+enframe(unlist(car_mean))
+```
+
+```{r}
+# determine type of column
+
+column_type <- list()
+
+for(i in 1:ncol(flights)) {
+  col <- flights[[i]]
+  
+  column_type[names(flights)[i]] <- typeof(col)
+}
+
+enframe(unlist(column_type))
+
+```
+
+```{r}
+# unique values of each column in iris
+
+unique_iris <- list()
+
+for(i in 1:ncol(iris)) {
+  col <- iris[[i]]
+  
+  unique_iris[i] <- length(unique(col))
+}
+
+enframe(unlist(unique_iris))
+
+```
+
+```{r}
+# 10 random draws
+mu <- c(-10, 0, 10, 100)
+
+random_draws <- vector("list", length(mu))
+
+for(i in seq_along(mu)) {
+    random_draws[[i]] <- rnorm(10, mu[i])
+}
+
+random_draws
+```
+
+### Exercise 6
+
+Imagine that you have a directory full of CSV files that you want to read in to R. You have their paths in a vector, `files <- dir("data/", pattern = "\\.csv$", full.names = TRUE)`, and want to read each one with `read_csv()`. Write a for loop that will load them into a single data frame.
+
+```{r}
+files <- dir("data/", pattern = "\\.csv$", full.names = TRUE)
+
+csv_df <- vector("list", length(files))
+
+for(i in seq_along(files)) {
+  csv_df[[i]] <- read_csv(files[[i]])
+  
+}
+
+```
+
+
+### Exercise 7
+
+Write a function that prints the mean of each numeric column in a data frame along with its name. For example, `show_mean(iris)` should print:
+
+```{r}
+#| label: ex-07
+
+show_mean <- function(df) {
+  
+  for(i in 1:ncol(df)){
+    if(is.numeric(df[[i]])) {
+    cat(paste0(names(df[i]), ": ", round(mean(df[[i]]), 2 ), "\n"))
+    }
+  }
+}
+
+show_mean(iris)
+#> Sepal.Length: 5.84
+#> Sepal.Width: 3.06
+#> Petal.Length: 3.76
+#> Petal.Width: 1.20
+
+
+
+```
+
+### Exercise 8
+
+Write code that uses one of the map functions to:
+
+-   Compute the mean of every column in `mtcars`.
+-   Determine the type of each column in `nycflights13::flights`.
+-   Compute the number of unique values in each column of `iris`.
+-   Generate 10 random normals for each of $\mu =$ −10, 0, 10, and 100.
+
+```{r}
+# mean of columns in `mtcars`
+
+enframe(
+  unlist(
+    map(mtcars, function(x){
+  mean(x)
+    }
+    )
+  )
+)
+```
+```{r}
+# type of column in flights
+enframe(
+  unlist (
+    map(flights, function(x) {
+      typeof(x)
+      }
+    )
+  )
+)
+```
+
+```{r}
+# number of unique values in iris
+enframe(
+  unlist(
+    map(iris, function (x) {
+      unique_iris <- length(unique(x))
+      }
+      )
+  )
+)
+
+```
+
+
+```{r}
+# 10 random normals
+
+mu <- c(-10, 0, 10, 100)
+
+map(mu, function(x) {
+  rnorm(10, mean = x)
+} 
+)
+```
+
+
+### Exercise 9
+
+Rewrite `map(x, function(df) lm(mpg ~ wt, data = df))` to eliminate the anonymous function.
+
+```{r}
+x <- split(mtcars, mtcars$cyl)
+map(x, function(df) lm(mpg ~ wt, data = df))
+map(x, ~ lm(mpg ~ wt, data = .))
+```
+
