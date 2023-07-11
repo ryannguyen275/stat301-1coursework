@@ -1,0 +1,222 @@
+---
+title: "L11 Dates and Times"
+subtitle: "Data Science 1 with R (STAT 301-1)"
+author: "Ryan Nguyen"
+
+format:
+  html:
+    toc: true
+    embed-resources: true
+    code-fold: show
+    link-external-newwindow: true
+    
+execute:
+  warning: false
+  
+from: markdown+emoji  
+---
+
+## Overview
+
+The goal of this lab is to learn and understand how to work with dates and times in R (which is surprisingly complex). The `lubridate` package makes it easier to work with dates and times within R in an intuitive framework with methods that can handle time zones, leap days, daylight savings times, and other issues related to time. It was recently announced that `lubridate` will be part of the the "core" tidyverse and will be installed as part of the `tidyverse` package starting with the next release of `tidyverse`. For now `lubridate` must be installed and loaded separately.
+
+These resources may help:
+
+* [`lubridate` tidyverse homepage](http://lubridate.tidyverse.org/reference/index.html)
+* [`lubridate` vignette (highly recommend)](https://cran.r-project.org/web/packages/lubridate/vignettes/lubridate.html)
+
+## Load Packages
+
+```{r}
+#| label: load-pkgs
+
+# Loading package(s)
+library(lubridate)
+library(tidyverse, quietly = T)
+library(nycflights13)
+```
+
+## Datasets 
+
+We will be utilizing the familiar `flights` dataset from `nycflights13` (see `?flights` for documentation). **You will need to recreate and work with the `flights_dt` dataset found in the chapter.** 
+
+## Exercises
+
+### Exercise 1
+
+What happens if you try to parse a string that contains invalid dates, like this one?
+
+```{r}
+#| label: ex-01
+ymd(c("2010-10-10", "bananas"))
+```
+
+**ANSWER:**
+When you try to parse a string that contains invalid dates, it returns as NA.
+
+### Exercise 2
+
+Use the appropriate `lubridate` function to parse each of the following dates:
+
+```{r}
+#| label: ex-02
+
+d1 <- "January 1, 2010"
+d2 <- "2015-Mar-07"
+d3 <- "06-Jun-2017"
+d4 <- c("August 19 (2015)", "July 1 (2015)")
+d5 <- "12/30/14" # Dec 30, 2014
+```
+
+```{r}
+mdy(d1)
+ymd(d2)
+dmy(d3)
+mdy(d4)
+mdy(d5)
+```
+
+### Exercise 3
+
+Compare `dep_time`, `sched_dep_time` and `dep_delay`. Are they consistent? Explain your findings.
+```{r}
+make_datetime_100 <- function(year, month, day, time) {
+  make_datetime(year, month, day, time %/% 100, time %% 100)
+}
+
+flights_dep <- flights %>% 
+  filter(!is.na(dep_time), !is.na(arr_time)) %>% 
+  mutate(
+    dep_time = make_datetime_100(year, month, day, dep_time),
+    sched_dep_time = make_datetime_100(year, month, day, sched_dep_time),
+    dep_time_calc = sched_dep_time + 60*dep_delay,
+    check_dep_time = dep_time_calc == dep_time
+  ) %>% 
+  select(dep_time, dep_time_calc, sched_dep_time, dep_delay, check_dep_time)
+```
+**ANSWER:**
+While comparing `dep_time`, `sched_dep_time` and `dep_delay`, we found that if you add `sched_dep_time` and `dep_delay`, it is not always consistent with `dep_time`. This is because our data set does not take into account when the flights departure time is delayed so much that the actual departure time is a different date than its scheduled departure time. We can adjust this by mutating our departure time so that when the scheduled departure time plus the departure delay is greater than 2400, it adds a day to the actual departure date. 
+
+### Exercise 4 
+
+Compare `air_time` with the difference between departure time and arrival time. Explain your findings. 
+
+*Hint:* Consider the location of the airport --- this may require joining data frames.
+
+```{r}
+make_datetime_100 <- function(year, month, day, time) {
+  make_datetime(year, month, day, time %/% 100, time %% 100)
+}
+
+flights_air <- flights %>% 
+  filter(!is.na(dep_time), !is.na(arr_time)) %>% 
+  mutate(
+    dep_time = make_datetime_100(year, month, day, dep_time),
+    arr_time = make_datetime_100(year, month, day, arr_time),
+    air_time_calc = arr_time - dep_time,
+    check_time = air_time_calc == air_time
+  ) %>% 
+  select(origin, dest, contains("time"))
+
+# join airports 
+  
+flights_join <- flights_air %>% 
+  inner_join(airports, by = c("origin" = "faa")) %>% 
+  inner_join(airports, by = c("dest" = "faa")) %>% 
+  mutate(time_change = tz.y - tz.x,
+         air_time_calc_adj = air_time_calc-60*time_change) %>% 
+  select(origin, dest, contains("time"))
+```
+
+**ANSWER:**
+When comparing `air_time` with the difference between departure time and arrival time, we would hope to see that the difference between these times are equal to `air_time`. However, this is not the case because of time zone changes, so we have to take into account the time differences into our code. Even so, we see some high negative numbers, which are due to the fact that the flight may arrive the next day, which our data doesn't account for. We can adjust this by mutating our arrival time so that when the departure time plus the air time is greater than 2400, it adds a day to the arrival date. 
+
+### Exercise 5
+
+How does the average delay time change over the course of a day? Should you use `dep_time` or `sched_dep_time` to assess this? Explain your choice.
+
+```{r}
+
+flights_dt <- flights %>% 
+  filter(!is.na(dep_time), !is.na(arr_time)) %>% 
+  mutate(
+    dep_time = make_datetime_100(year, month, day, dep_time),
+    arr_time = make_datetime_100(year, month, day, arr_time),
+    sched_dep_time = make_datetime_100(year, month, day, sched_dep_time),
+    sched_arr_time = make_datetime_100(year, month, day, sched_arr_time)
+  ) %>% 
+  select(origin, dest, ends_with("delay"), ends_with("time"))
+
+flights_hour <- flights_dt %>% 
+  mutate(
+    sched_dep_hour = hour(sched_dep_time)
+  ) %>% 
+  group_by(sched_dep_hour) %>% 
+  summarise(avg_delay = mean(dep_delay))
+
+ggplot(flights_hour, aes(x = sched_dep_hour, y = avg_delay)) + 
+  geom_line() +
+  labs(x = "Hour of the Day", y = "Average Delay (in minutes)")
+```
+**ANSWER:**
+We should use `sched_dep_time` because we want to see how their scheduled time affects their delay. With `dep_time`, the data will be skewed since most flights are delayed to later in the day, and delay times vary. As we can see with the plot, it seems as though the later in the day a flight is scheduled, the more delay it is on average, with it peaking around 7 or 8 pm then declining.
+
+### Exercise 6
+
+On what day of the week should you leave if you want to minimize the chance of a delay?
+
+```{r}
+flights_wday <- flights_dt %>% 
+  mutate(day = wday(sched_dep_time, label = TRUE, abbr = FALSE),
+         delayed = ifelse(dep_delay >0, 1, 0)) %>% 
+  group_by(day) %>% 
+  mutate(count = n()) %>% 
+  group_by(day, delayed) %>% 
+  mutate(delay_prop = n()/count) %>% 
+  filter(delayed == 1)
+
+ggplot(flights_wday, aes(x = day, y = delay_prop)) +
+  geom_bar(stat = "identity") +
+  labs(x = "Day of the Week", y = "Proportion of Delays")
+```
+
+**ANSWER:**
+To minimize the chance of delays, you should leave on a Saturday, since it has the lowest proportion of flights that are delayed.
+
+### Exercise 7
+
+Create a tibble with 3 variables containing the following:
+
+1. every month in a year (i.e., "January"),
+2. the date of the first day of every month (i.e., "2022-01-01"), and 
+3. the day of the week that each first day falls on (i.e., "Tuesday"). 
+
+```{r}
+tibble(Date = ymd("2022-01-01") + months(0:11), 
+       Month = months(ymd(Date)), 
+       "Day of the Week" = wday(Date, label = TRUE, abbr = FALSE))
+
+```
+
+
+### Exercise 8
+
+Write a function that returns how old you are in years, given your birthday (as `"YYYY-MM-DD"`). 
+
+*Hint*: Functions are directly covered in the next lab so it might be useful to read ahead a little or come back to this question after completing some work on the next lab.
+
+
+```{r}
+age_year <- function(bday = "2003-01-01") {
+  diff <- (ymd(bday) %--% today()) / years(1)
+  
+  year_round <- diff %/% 1
+  
+  return(cat("You are", year_round, "years old."))
+}
+
+age_year("2002-09-13")
+```
+
+
+
