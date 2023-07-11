@@ -1,0 +1,355 @@
+---
+title: "L02 Data Visualization"
+subtitle: "Data Science 1 with R (STAT 301-1)"
+author: "Ryan Nguyen"
+
+format:
+  html:
+    toc: true
+    self-contained: true
+    link-external-newwindow: true
+---
+## Overview
+
+The goal of this lab is to start building the skills to visualize data using the `ggplot2` package in R. Students will also learn to access and utilize R documentation.
+
+## Datasets 
+
+This lab utilizes the `mpg` and `diamonds` datasets. Both come with `ggplot2` and their documentation/codebooks can be accessed with `?mpg` and `?diamonds`, provided you have installed and loaded `ggplot2` to your current R session.   
+
+## Exercises
+
+#### Load Packages
+
+You should always begin by loading all necessary packages towards the beginning of your documents. Assume that all necessary packages have been installed. User should be able to determine if a package needs to be installed either through knowing their R repository or an error message. **Your code should never have install commands.**
+
+```{r}
+#| label: load-pkgs
+# Loading package(s)
+library(tidyverse)
+```
+
+<br>
+
+### Exercise 1 
+
+There are three particularly important parameters to our template for building a graphic with `ggplot2`. They are `<DATA>`, `<GEOM_FUNCTION>`, and `<MAPPINGS>`. The importance of `<DATA>` is obvious. `<GEOM_FUNCTION>` is referring to the selection of a **geom**. `<MAPPINGS>`, specifically `aes(<MAPPINGS>)`, is referring to the process of defining **aesthetic mappings**.
+
+* What is a **geom**?
+
+**ANSWER:**
+A **geom** is a geometrical object that a plot uses to represent data; this includes bar geoms in bar charts and point geoms in scatterplots. 
+
+* What is an **aesthetic mapping**?
+
+**ANSWER:**
+An **aesthetic mapping** is the visual property of objects in the plot, including size, shape, color, etc. of the points. 
+
+<br>
+
+### Exercise 2
+
+Make a scatterplot of `hwy` vs `cyl`.
+
+**ANSWER:**
+
+```{r}
+#| label: hwy_vs_cyl
+ggplot(data = mpg, aes(x = cyl, y = hwy)) +
+  geom_point()
+```
+
+
+<br>
+
+### Exercise 3 
+
+What happens if you make a scatterplot of `class` vs `drv`? What is the major drawback of this plot --- really limits the plots usefulness?
+
+**ANSWER:**
+
+```{r}
+#|: class vs drv
+ggplot(data = mpg, aes(x = drv, y = class)) +
+  geom_point()
+```
+The major drawback to this scatterplot mapping 'class' vs 'drv' is that both variables are categorical, so a scatterplot is not useful in illustrating their correlation. With the scatterplot, we also are unable to see various observations in the same spot, as the points overlap. We can separate the points to see the repitition using 'geom_jitter()'.  
+
+<br>
+
+### Exercise 4
+
+What's gone wrong with this code? Why are the points not blue?
+
+```{r}
+#| label: ex-4
+
+ggplot(data = mpg) + 
+  geom_point(aes(x = displ, y = hwy, color = "blue"))
+```
+**ANSWER:**
+The points are not blue because the 'color = "blue"' part of the code should not be included in the aesthetic; it should be separated by a closing parenthesis ). The code should be: 'aes(x = displ, y = hwy), color = "blue")
+
+<br>
+
+### Exercise 5
+
+What does the `stroke` aesthetic do? What shapes, provide the numerical references, does it work with? (Hint: use `?geom_point`)
+
+```{r}
+ggplot(data = mpg) + 
+  geom_point(mapping = aes(x = displ, y = hwy), shape = 22, fill = "red", color = "blue", stroke = 1)
+```
+**ANSWER:**
+The stroke aesthetic changes the thickness/width of the border of the objects/points. The shapes 1-14 work with stroke since these objects are hollow-- the border can change thickness. Additionally, the shapes 21-24 work with stroke since these objects are filled with a different color than the border, thus the border can change thickness. However, shapes 15-20 are filled with the same color, so stroke doesn't change the border, just the overall size. 
+
+<br>
+
+### Exercise 6 
+
+What happens if you map an aesthetic to something other than a variable name, like `aes(colour = displ < 5)`?
+
+```{r}
+ggplot(data = mpg, aes(colour = displ < 5, x = displ, y = hwy)) + 
+  geom_point()
+```
+
+
+**ANSWER:**
+If you map an aesthetic to something other than a variable name, the graph plots the data according to the aesthetic mapped. In this case, the graph shows the different colors of the displ based on if it is less than or greater than 5. 
+
+<br>
+
+### Exercise 7 
+
+What do the empty cells in the plot using facets indicate? 
+
+```{r}
+#| label: ex-7-plot-1
+
+ggplot(data = mpg) + 
+  geom_point(mapping = aes(x = displ, y = hwy)) + 
+  facet_grid(drv ~ cyl)
+```
+
+How do they relate to this plot?
+
+```{r}
+#| label: ex-7-plot-2
+
+ggplot(data = mpg) + 
+  geom_point(mapping = aes(x = drv, y = cyl))
+```
+
+**ANSWER:**
+The empty cells in the plot using facets indicate that there are no observations/cars that are characterized by  the drive and the ammount of cylinders. For example, there are no cars with 4-wheel drive and 5 cylidnders and no cars with rear-wheel drive with 4 or 5 cylinders. The second plot shows simply if there are any cars with the type of drive and the amount of cylinders. Here, it shows there are no cars with rear-wheel drive with 4 or 5 cylinders and no cars with 4 wheel drive with 5 cylinders. Additionally, there are no cars with 7 cylinders. This plot does not show the relation between the engine displacement (in litres) and the highway miles per gallon. 
+
+<br>
+
+### Exercise 8
+
+Given the faceted plot:
+
+```{r}
+#| label: ex-8
+
+ggplot(data = mpg) + 
+  geom_point(mapping = aes(x = displ, y = hwy)) + 
+  facet_wrap(~ class, nrow = 2)
+```
+
+What are the advantages to using faceting instead of the color aesthetic? What are the disadvantages? How might the balance change if you had a larger dataset?
+
+**ANSWER:**
+
+The advantages to using faceting instead of the color aesthetic is that your objects are not layered into one graph, meaning you are able to see the different points based on the facet. The disadvantage might be you are not able to see the direct comparison between two different facets, whereas if they are on one graph, you could clearly see how they relate. With a larger dataset, it might be helpful to use color in order to see how all of the different points relate to one another. However, faceting is helpful with larger datasets since it'll help clean the graph by separating the different points. 
+
+<br>
+
+### Exercise 9
+
+Read `?facet_wrap`. What does `nrow` do? What does `ncol` do? What other options control the layout of the individual panels? Why doesn't `facet_grid()` have `nrow` and `ncol` argument?
+
+**ANSWER:**
+'nrow' changes the number of rows, while 'ncol' changes the number of columns. 'dir' and 'as.table' control the layout of the individual panels. 'facet_grid()' does not have the 'nrow' and 'ncol' arguments because the number of rows and columns are given by the number of unique values in the facets. 
+
+<br>
+
+### Exercise 10
+
+When using `facet_grid()` it is suggested that you put the variable with more unique levels in the columns. Why do you think that this practice is suggested?
+
+**ANSWER:**
+When using `facet_grid()` I think it is suggested that you put the variable with more unique levels in the columns because it will be easier to read since the data can be more spread out, whereas in the rows, it may be more congested. Thus, it'd be easier to compare greater amounts of data. 
+
+<br>
+
+### Exercise 11
+
+What geom would you use to draw a line chart? A boxplot? A histogram? An area chart?
+
+**ANSWER:**
+You would use 'geom_line' for a line chart, 'geom_boxplot' for a boxplot, 'geom_histogram' for a histogram, and 'geom_area' for an area chart. 
+
+<br>
+
+### Exercise 12
+
+Suppose we have a dataset named `dat` containing the variables `weight`, `height`, and `gender`. Predict what the output/graphic will look like for the code below.
+
+```{r}
+#| label: ex-12
+#| eval: false
+
+ggplot(data = dat, mapping = aes(x = height, y = weight, color = gender)) + 
+  geom_point() + 
+  geom_smooth(se = FALSE)
+```
+
+**ANSWER:**
+I predict that the graph for this code would consist of a scatterplot where the points are different colors depending on the gender variable. Additionally, I think there would be a line that aids in seeing patterns in the graph, with no confidence interval displayed around smooth.
+
+<br>
+
+### Exercise 13
+
+Will these two graphs look different? Why/why not? --- Try answering without running code and then check.
+
+```{r}
+#| label: ex-13
+
+# Graph 1
+ggplot(data = mpg, mapping = aes(x = displ, y = hwy)) + 
+  geom_point() + 
+  geom_smooth()
+
+# Graph 2
+ggplot() + 
+  geom_point(data = mpg, mapping = aes(x = displ, y = hwy)) + 
+  geom_smooth(data = mpg, mapping = aes(x = displ, y = hwy))
+```
+
+**ANSWER:**
+Before plotting the graphs, I do think that these two graphs will be the same. They have the same aesthetics for the x and y with the same data sets in both graphs. After plotting the graphs, it seems as though the predictions were correct in that the graphs look the same.
+
+<br>
+
+### Exercise 14
+
+Recreate the R code necessary to generate the following graphs (first 5 required, 6th is a challenge).
+
+<br>
+
+#### Challenge --- Graduate students must complete
+**Undergraduates are not required to complete this.**
+
+<br>
+
+### Exercise 15 
+
+What is the default geom associated with `stat_summary()`? How could you rewrite the code to use the default geom function instead of the stat function?
+
+```{r}
+#| label: ex-15
+
+ggplot(data = diamonds) + 
+  geom_pointrange(
+    mapping = aes(x = cut, y = depth),
+    fun.min = min,
+    fun.max = max,
+    fun = median,
+    stat = "summary"
+  )
+```
+
+**ANSWER:**
+The default geom associated with 'stat_summary' is geom_pointrange. See code above to see how we can rewrite the code to use the default geom function instead of the stat function. 
+
+<br>
+
+### Exercise 16
+
+What variables does `stat_smooth()` compute? In your own words, describe how the parameters `method`, `formula`, and `span` effect its behavior.
+
+**ANSWER:**
+'stat_smooth()' computes various variables, some of which depend on orientation. It provides y or x (the predicted value), ymin or xmin (the lower pointwise confidence interaval around the mean), ymax or xmax (the uppoer pointwise confidence interval around the mean), and the standard error. In 'stat_smooth()' 'method' deals with which smoothing function to utilize, 'formula' deals with which formula to utilize in the smoothing function, and 'span' impacts how much smoothing for loess smoother, which is the default (the greater the number, the smoother the line produced).
+
+<br>
+
+### Exercise 17 
+
+What is the problem with this plot? How could you improve it?
+
+```{r}
+#| label: ex-17
+
+ggplot(data = mpg, mapping = aes(x = cty, y = hwy)) + 
+  geom_point()
+```
+
+**ANSWER:**
+
+```{r}
+ggplot(data = mpg, mapping = aes(x = cty, y = hwy)) + 
+  geom_point() +
+  geom_jitter()
+```
+In the original plot, there appears to be overplotting, since there are multiple observations of same values when mapping 'hwy' by 'cty'. I fixed the graph by adding 'geom_jitter' to help spread the observations and make it easier to read and distinguish.
+
+<br>
+
+### Exercise 18
+
+What's the default position adjustment for `geom_boxplot()`? Create a visualization of the mpg dataset that demonstrates it.
+
+**ANSWER:** The default position adjustment for 'geom_boxplot()' is 'dodge2'. The visualization of the mpg dataset below demonstrates it since it default positions the boxplots side by side. 
+
+```{r}
+ggplot(data = mpg, aes(x = cty, y = hwy, group = class)) +
+  geom_boxplot ()
+```
+
+
+<br>
+
+### Exercise 19
+
+What does `labs()` do? Read the documentation.
+
+**ANSWER:**
+According to the documentation, 'labs()' allows you to edit the axis/plot title, subtitle, caption, and tags of a plot.
+
+<br>
+
+### Exercise 20
+
+What does the plot below tell you about the relationship between city and highway mpg? Why is `coord_fixed()` important? What does `geom_abline()` do?
+
+```{r}
+#| label: ex-20
+
+ggplot(data = mpg, mapping = aes(x = cty, y = hwy)) +
+  geom_point() + 
+  geom_abline() +
+  coord_fixed()
+```
+**ANSWER:**
+The plot above tells us that there is a pretty linear, positive correlation between 'cty' and 'hwy' in the mpg data set. 'coord_fixed()' ensures that the data is presented in a fixed scale coordinate system. 'geom_abline' adds reference lines to the plot that help illustrate the correlation in the data in one linear visualization.
+
+<br>
+
+### Exercise 21
+
+In a few sentences, describe the approach to building graphics that is implemented in `ggplot2`.
+
+When building graphics, the first thing to think about is the overall goal and objective of the particular graphic. Is it illustrator a relationship? Correlation? How different variables compare side by side? How things have changed overtime? What observations are the most frequent? Once this question is answered, an objective is found, it's important to think about which variables will be used, including whether we are illustrating categorical or numerical data, or both. Once this is understood, we can determine which geom within ggplot2 to use. For example, geom_point creates a scatterplot which is great when you are trying to view the relationship between 2 continuous numerical variables. Additionally, geom_bar creates a bar chart which is helpful in comparing categorical variables against numerical. Once we know which graph to use, we then plot one variable on the x axis and one on the y axis, within the 'aes()'. From here, we can think about ways to make our data easier to read and deal with-- whether it's adding a line with 'geom_smooth()', spreading points out with 'geom_jitter()', splitting the data up with 'facet_wrap()', or changing the colors of points, lines, or bars. With this implemented, we can create a nice, clean graph that achieves our goal.
+
+<br>
+
+## Challenge
+
+**No one, undergraduate or graduate, is required to complete this challenge.** This section is for those wanting to go a little further with `ggplot2`. 
+
+Attempt to recreate the following graphic. 
+
+*Hint: `ggthemes` package* 
