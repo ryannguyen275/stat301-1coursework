@@ -1,0 +1,229 @@
+---
+title: "L08 Relational Data"
+subtitle: "Data Science 1 with R (STAT 301-1)"
+author: "Ryan Nguyen"
+
+format:
+  html:
+    toc: true
+    embed-resources: true
+    code-fold: show
+    link-external-newwindow: true
+    
+execute:
+  warning: false
+  
+from: markdown+emoji  
+---
+
+## Overview
+
+The goal of this lab is to learn and understand the concepts of **relational data**. It is extremely rare that data analyses involve one all-encompassing dataset; we usually want to combine information from multiple data tables/sources to answer interesting questions. The collection of data tables/sources is called **relational data** because it is the relations connecting the datasets together that are important.
+
+See [two-table verbs in `dplyr`](https://dplyr.tidyverse.org/reference/index.html#two-table-verbs) for more information concerning relational data.
+
+[Relational Database Wikipedia Page](https://en.wikipedia.org/wiki/Relational_database)
+
+## Load Packages
+
+```{r}
+#| label: load-pkgs
+#| 
+# Loading package(s)
+library(tidyverse, quietly = T)
+library(nycflights13)
+library(Lahman)
+library(babynames)
+library(nasaweather)
+library(fueleconomy)
+```
+
+## Datasets
+
+All datasets are found within R packages, which students should be able to identify and download as needed.
+
+## Exercises
+
+### Exercise 1
+
+Consider the tables/datasets contained in `nycflights13`. Imagine you wanted to draw (approximately) the route each plane flies from its origin to its destination. What variables would you need? What tables would you need to combine?
+
+**ANSWER:** The variables we would need are origin and dest, along with lon and lat. The tables we would need to combine are `airports` and `flights`.
+
+### Exercise 2
+
+A relationship between `weather` and `airports` is possible. What is the relationship and how would it appear in a diagram (i.e., which variables should be matched)?
+
+**ANSWER:** `weather` connects to `flights`, through the variables origin, year, month, day, and hour. The origin/dest variables then connects to `airports` through the variable, `faa`.
+
+### Exercise 3
+
+Add a surrogate key to `flights`.
+
+```{r}
+flights %>% 
+  mutate(flight_id = row_number())
+```
+
+### Exercise 4
+
+For each of the following datasets, identify any key column\[s\] and specify whether they are primary or foreign keys. You might need to install some packages and read some documentation.
+
+-   `Lahman::Batting,`
+-   `babynames::babynames`
+-   `nasaweather::atmos`
+-   `fueleconomy::vehicles`
+-   `ggplot2::diamonds`
+
+**ANSWER:**
+
+| ID       | Dataset   | key type                                                                         |
+|------------|------------|-------------------------------------------------|
+| playerID | Batting   | foreign (primary in `People` dataset)                                            |
+| teamID   | Batting   | foreign (primary in `Teams` dataset)                                             |
+| no keys  | babynames |                                                                                  |
+| no keys  | atmos     | (if we merge lat, long, year, month this could uniquely identify an observation) |
+| id       | vehicles  | primary                                                                          |
+| model    | vehicles  | foreign (primary in `common` dataset)                                            |
+
+### Exercise 5
+
+Is there a relationship between the age of a plane and its average arrival delay?
+
+```{r}
+age_delay <- flights %>% 
+  left_join(planes,
+            by = c('tailnum')) %>% 
+  group_by(tailnum) %>% 
+  mutate(age = year.x - year.y) %>% 
+  filter(!is.na(age)) %>% 
+  summarize(age = mean(age, na.rm = TRUE),
+            mean_arr_delay = mean(arr_delay, na.rm = TRUE))
+
+age_delay %>% 
+  ungroup() %>% 
+  select(age, mean_arr_delay) %>% 
+  cor(use = "complete.obs")
+
+age_delay %>% 
+  ggplot(aes(x = age, y = mean_arr_delay)) +
+  geom_point()
+```
+**ANSWER:**
+While one would expect there to be a relationship between the age of a plane and the average arrival date, the fact that the correlation value is -0.016 shows us that there is not a strong relationship.
+
+### Exercise 6
+
+What weather conditions make it more likely to see a departure delay?
+
+```{r}
+weather_impact <- flights %>% 
+  left_join(weather,
+            by = c('origin', 'time_hour', 'year', 'month', 'day', 'hour'))
+
+# average daily impact. Under the assumption there is not a huge weather change on one day
+weather_impact %>% 
+  group_by(origin, year, month, day) %>% 
+  summarize(mean_delay = mean(dep_delay, na.rm = TRUE),
+            temp = mean(temp, na.rm = TRUE),
+            dewp = mean(dewp, na.rm = TRUE), 
+            humid = mean(humid, na.rm = TRUE),
+            wind_speed = mean(wind_speed, na.rm = TRUE),
+            precip = mean(precip, na.rm = TRUE),
+            visib = mean(visib, na.rm = TRUE)) %>% 
+  ungroup() %>% 
+  select(mean_delay, temp, dewp, humid, wind_speed, precip, visib) %>% 
+  cor(use = "complete.obs")
+```
+
+**ANSWER:**
+Based on the higher correlation values, lower visibilty, higher precipitation, and higher humidity make it more likely to see a departure delay.
+
+### Exercise 7
+
+What does it mean for a flight to have a missing `tailnum`? What do the tail numbers that don't have a matching record in `planes` have in common? *Hint: one variable explains \~90% of the problems.*
+```{r}
+flights %>% 
+  filter(is.na(tailnum))
+
+flights %>%
+  anti_join(planes, by = 'tailnum') %>%
+  group_by(carrier) %>%
+  summarize(n = n()) %>%
+  arrange(desc(n))
+```
+**ANSWER:**
+In the `flights` data set, we can see that everytime there is an NA for `tailnum`, there is also NA for `dep_time`, `dep_delay`, `arr_time`, `arr_delay`, and `air_time`. This implies that the flight was cancelled/never took off. In the planes data set, it seems as though all of these flights were from two carriers: MQ and AA. This implies that these airlines probably do not use tail numbers, but probably another form of identification.
+
+### Exercise 8
+
+Filter `flights` to show only the flights of planes that flew at least 100 times.
+```{r}
+hundred_times <- flights %>% 
+  filter(!is.na(tailnum)) %>% 
+  group_by(tailnum) %>% 
+  mutate(n=n()) %>% 
+  filter(n >= 100)
+
+hundred_times
+```
+
+
+### Exercise 9
+
+Combine `fueleconomy::vehicles` and `fueleconomy::common` to find the records for only the most common models.
+
+```{r}
+common_records <- vehicles %>%
+  semi_join(common, by = c("make", "model"))
+
+print(common_records)
+```
+
+
+### Exercise 10
+
+What does `anti_join(flights, airports, by = c("dest" = "faa"))` tell you?
+
+What does `anti_join(airports, flights, by = c("faa" = "dest"))` tell you?
+
+```{r}
+anti_join(flights, airports, by = c("dest" = "faa"))
+
+anti_join(airports, flights, by = c("faa" = "dest"))
+
+```
+**ANSWER:**
+`anti_join(flights, airports, by = c("dest" = "faa"))` gives us the flights from the destinations that are not present in the `airports` data set. On the other hand, `anti_join(airports, flights, by = c("faa" = "dest"))` tells us the airports that there are no flights departed from in the `flights` data set.
+
+### Exercise 11
+
+We might assume there's a relationship between plane and airline where each plane is flown by a single airline. Confirm or reject this hypothesis using the tools you've learned above.
+
+```{r}
+# help from TA, using `distinct()` to find distinct airline and plane combos
+single_airlines <- flights %>%
+  filter(!is.na(tailnum)) %>% 
+  distinct(tailnum, carrier)
+ 
+# number of planes that have flown more with more than one airline
+single_airlines %>% 
+  count(tailnum) %>% 
+  filter(n > 1)
+
+# joining data set with airlines to get specific names of tailnums that have flown for multiple airlines
+airline_names <- single_airlines %>% 
+  filter(n()>1) %>% 
+  left_join(airlines, by = "carrier") %>% 
+  arrange(tailnum, carrier)
+
+airline_names
+```
+**ANSWER:**
+We can accept the hypothesis that there's a relationship between plane and airline where each plane is flown by a single airline since there are about 4,060 observations with distinct tail numbers and carriers. 
+
+## Challenge
+
+**Challenge is optional for all students, but we recommend trying them out!**
+
+Find the 48 hours (over the course of the whole year) that have the worst delays. Cross-reference with the `weather` data. Can you see any patterns?
