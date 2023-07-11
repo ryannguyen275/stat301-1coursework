@@ -1,0 +1,374 @@
+---
+title: "L04 Exploratory Data Analysis"
+subtitle: "Data Science 1 with R (STAT 301-1)"
+author: "Ryan Nguyen"
+
+format:
+  html:
+    toc: true
+    embed-resources: true
+    code-fold: show
+    link-external-newwindow: true
+    
+execute:
+  warning: false
+  
+from: markdown+emoji 
+---
+
+## Overview
+
+The goal of this lab is to begin to use data visualization and transformation skills to explore data in a systematic way. We call this exploratory data analysis (EDA). 
+
+## Load Packages
+
+```{r}
+#| label: load-pkgs
+
+# Loading package(s)
+library(tidyverse, quietly = T)
+library(nycflights13)
+library(patchwork)
+library(lvplot)
+
+```
+
+## Datasets 
+
+This lab utilizes the `diamonds` and `flights` datasets contained in packages `ggplot2` and `nycflights13`, respectively. Documentation/codebook can be accessed with `?diamonds` and `?flights`, provided you have installed and loaded `nycflights13` and `tidyverse` in your current R session. 
+
+## Exercises
+
+### Exercise 1 
+
+There are a lot of resources out there to get help and insights into using RStudio. Please visit and explore the following:
+
+* RStudio Tips twitter account (consider following): [https://twitter.com/rstudiotips](https://twitter.com/rstudiotips)
+* RStudio diagnostic report (consider changing your defaults): [https://support.rstudio.com/hc/en-us/articles/205753617-Code-Diagnostics](https://support.rstudio.com/hc/en-us/articles/205753617-Code-Diagnostics)
+* RStudio Community (consider joining/setting up an account): [https://community.rstudio.com/](https://community.rstudio.com/)  
+
+> COMPLETED
+
+### Exercise 2
+
+Explore the distribution of each of the `x`, `y`, and `z` variables in `diamonds`. What do you learn? Think about a diamond; think about how we might determine which dimension of a diamond is its length, width, and depth.
+
+```{r}
+ggplot(diamonds) + 
+  geom_density(aes(x), color = "red", linetype = 1) +
+  geom_density(aes(y), color = "blue", linetype = 2) +
+  geom_density(aes(z), color = "green", linetype = 3) +
+  theme_minimal() +
+  ggtitle("Distributions of x, y, z variables") + 
+  xlim(c(0,20)) + 
+  labs(x = "x, y, z")
+```
+**ANSWER:**
+From exploring the distribution of the 'x', 'y', and 'z' variables, we can see that the all distributions have multiple peaks and are right skewed. The observations range mostly from around 4 to 10 in 'x' and 'y', with similar patterns of peaking and dropping. However, they range from around 2 to 6 with outliers nearing 35 in 'z'. Thinking about a diamond, the length and width of a diamond probably have similar values and distributions. This implies that 'x' and 'y' are the length and width of a diamond, while 'z' is most likely the depth since it's distribution is varied compared to the others. 
+
+### Exercise 3
+
+Explore the distribution of `price`. Do you discover anything unusual or surprising? *Hint:* Carefully think about the `binwidth` and make sure you try a wide range of values.
+
+```{r}
+diamonds %>% 
+  ggplot(aes(x = price)) + 
+  geom_histogram(binwidth = 200)
+
+diamonds %>% 
+  ggplot(aes(x = price)) + 
+  geom_histogram(binwidth = 20)
+
+diamonds %>% 
+  ggplot(aes(x = price)) + 
+  geom_histogram(binwidth = 1)
+```
+**ANSWER:**
+
+While looking at the plots, we can notice various things about the distribution of price. For one, there are multiple local peaks across the plot, with a largest peak at around 750. Additionally, there seems to be no observations where the price is 1500 dollars, which is a bit unusual. 
+
+### Exercise 4 
+
+How many diamonds are 0.99 carat? How many are 1 carat? What do you think is the cause of the difference?
+
+```{r}
+diamonds %>% 
+  group_by(carat) %>% 
+  filter(carat == 0.99 | carat == 1) %>% 
+  summarise(count = n())
+```
+
+**ANSWER:**
+23 diamonds are 0.99 carat, and 1,558 diamonds are 1 carat. I think the cause of the difference is that people round when documenting the carats, or want to make it seem as though the diamonds are more carats than they are actually.
+
+### Exercise 5
+
+What is the major difference between using `coord_cartesian()` vs `xlim()` or `ylim()` to zoom in on a histogram/graphic?
+
+**ANSWER:** 
+The 'coord_cartesian()' function zooms in on the histogram/graphic after the it is already created, meaning the bins and binwidth are already decided before zooming in. On the other hand, 'xlim()' and 'ylim()' immediately discard the values outside of the x and y limitations, then create the histogram/graphic. This means that bins and binwitdh are determined after the values are dropped. 
+
+### Exercise 6
+
+What happens to missing values in a histogram? What happens to missing values in a bar chart? Why is there a difference?
+
+```{r}
+diamonds2 <- diamonds %>% 
+  mutate(y = ifelse(y < 4 | y > 20, NA, y))
+
+diamonds2 %>% 
+  ggplot(aes(x = y)) + 
+  geom_histogram(bins = 5, color = "white")
+```
+```{r}
+diamonds3 <- diamonds %>% 
+  filter(y > 10) %>% 
+  mutate(y = ifelse(y > 20, NA, y)) %>% 
+  mutate(y = as.character(y))
+
+diamonds3 %>%
+  ggplot(aes(x = y)) +
+  geom_bar()
+```
+**ANSWER:**
+
+In a histogram, the missing values are removed immediately, before the histogram is made. They are not visualized in the histogram at all. On the other hand, a bar chart includes a separate column for the missing values, illustrating the amount of missing values in the chart. The difference is because histograms show the frequency of numerical/continuous variables, so there is nowhere for the missing values to go. However, bar charts show the frequency of categorical variables, so it is easy to count all of the missing values and put them in a separate column.
+
+### Exercise 7
+
+What does `na.rm = TRUE` do in `mean()` and `sum()`? What happens when it is not included and `NA` values are present?
+
+```{r}
+flights %>% 
+  summarise(mean = mean(dep_time),
+            sum = sum(dep_time))
+
+flights %>% 
+  summarise(mean = mean(dep_time, na.rm = TRUE),
+            sum = sum(dep_time, na.rm = TRUE))
+```
+
+**ANSWER:**
+'na.rm = TRUE' removes the missing values from the list in 'mean()' and 'sum()'. If it is not included and 'NA' values are present, the code will return 'NA' because it cannot take the mean or sum if missing values are present. 
+
+### Exercise 8
+
+Use what you've learned in *7.5.1 A Categorical and continuous variable* to improve this visualization of the departure times of cancelled vs. non-cancelled flights.
+
+```{r}
+#| label: ex-8
+
+flights %>% 
+  mutate(
+    cancelled = is.na(dep_time),
+    sched_hour = sched_dep_time %/% 100,
+    sched_min = sched_dep_time %% 100,
+    sched_dep_time = sched_hour + sched_min / 60
+  ) %>% 
+  ggplot(mapping = aes(sched_dep_time)) + 
+  geom_freqpoly(mapping = aes(color = cancelled),
+                stat = "density") + 
+  labs(x = "Scheduled Departure Time")
+```
+
+### Exercise 9
+
+What variable in the `diamonds` dataset is most important for predicting the `price` of a diamond? How is that variable correlated with `cut`? Why does the combination of those two relationships result in lower quality diamonds being more expensive?
+
+```{r}
+ggplot(diamonds, aes( x = carat, y = price )) +
+  geom_point(alpha = 0.2) +
+  geom_smooth()
+
+ggplot(diamonds, aes( x = price )) +
+  geom_freqpoly(aes(color = cut))
+
+ggplot(diamonds, aes( x = price)) +
+  geom_freqpoly(aes(color = color))
+
+ggplot(diamonds, aes( x = price )) +
+  geom_freqpoly(aes(color = clarity))
+
+ggplot(diamonds, aes( x = depth, y = price )) +
+  geom_point(alpha = 0.2) +
+  geom_smooth()
+
+ggplot(diamonds, aes( x = table, y = price )) +
+  geom_point(alpha = 0.2) +
+  geom_smooth()
+```
+
+```{r}
+ggplot(diamonds, aes( x = carat, y = price )) +
+  geom_point() + 
+  facet_wrap(~ cut)
+
+ggplot(diamonds, aes(x = carat)) +
+  geom_freqpoly(aes(color = cut))
+```
+
+
+**ANSWER:**
+The variable in the 'diamonds' dataset that is most important in predicting the 'price' of a diamond is 'carat', which is evident since it is the variable with a strong, linear relationship with 'price'. For the different observations within the 'cut' variable, there seems to be a commonality in that most cuts tend to have a lower carat. We see that there exists some diamonds that are lower quality but more expensive because they are so high in carat. 
+
+### Exercise 10
+
+Recreate the horizontal boxplot below without using `coord_flip()`.
+
+```{r}
+#| label: ex-10
+
+ggplot(data = mpg) +
+  geom_boxplot(mapping = aes(x = reorder(class, hwy, FUN = median), y = hwy)) +
+  labs(
+    x = NULL,
+    y = NULL
+  ) +
+  coord_flip()
+
+ggplot(data = mpg) +
+  geom_boxplot(mapping = aes(x = hwy, y = reorder(class, hwy, FUN = median))) +
+  labs(
+    x = NULL,
+    y = NULL
+  )
+```
+
+### Exercise 11
+
+One problem with boxplots is that they were developed in an era of much smaller datasets and tend to display a prohibitively large number of “outlying values.” One approach to remedy this problem is the letter value plot. Install the `lvplot` package and try using `geom_lv()` to display the distribution of `price` vs `cut`. What do you learn? How do you interpret the plots? [Check out this paper](http://vita.had.co.nz/papers/letter-value-plot.pdf)
+
+```{r}
+ggplot(diamonds, aes(x = cut, y = price)) +
+  geom_lv()
+```
+
+**ANSWER:**
+
+Letter value boxplots are especially helpful in visualizing large data sets over regular boxplots because they show a much greater quantity of quartiles and inclusion of outliers that help illustrate the distributions. For example, here, we can see that there is few observations of 'fair' cuts diamonds in the upper price ranges, when compared to the the other cuts. We would not be able to see that relationship in a normal boxplot. 
+
+### Exercise 12
+
+Display the relationship between `price` and `cut` using `geom_violin()` and again using a faceted version of `geom_histogram()`. What are the pros and cons of each method?
+
+```{r}
+ggplot(diamonds, aes(x = cut, y = price)) +
+  geom_violin() + 
+  coord_flip()
+
+ggplot(diamonds, aes(x = price)) +
+  geom_histogram(binwidth = 50) +
+  facet_wrap(~cut, ncol = 1)
+```
+
+**ANSWER:**
+The pros of the violin chart is that you are able to see how the density of the distributions varies between the different categorical values closely, and the slopes change. However, there are cons in that you are unable to identify a the amount of observations for each given variable for a given price. On the other hand, the faceted histograms allow you to see the number of observations for a given price of a given category. Furthermore, you can see peaks and dips more specifically in histograms.
+
+
+### Exercise 13
+
+Can you rescale the data used in the plot below to more clearly show the distribution of cut within color, or color within cut? Starting from the code below, use rescaling to show the distribution of (a) cut within color and (b) color within cut.  
+
+```{r}
+#| label: ex-13
+
+diamonds %>% 
+  count(color, cut) %>%  
+  ggplot(mapping = aes(x = color, y = cut)) +
+    geom_tile(mapping = aes(fill = n))
+
+# cut within color
+diamonds %>% 
+  count(color, cut) %>%  
+  group_by(color) %>% 
+  mutate(prop = n / sum(n)) %>% 
+  ggplot(mapping = aes(x = color, y = cut)) +
+  geom_tile(mapping = aes(fill = prop))
+
+# color within cut
+diamonds %>% 
+  count(color, cut) %>%  
+  group_by(cut) %>% 
+  mutate(prop = n / sum(n)) %>% 
+  ggplot(mapping = aes(x = color, y = cut)) +
+  geom_tile(mapping = aes(fill = prop))
+
+```
+
+### Exercise 14
+
+In Exercise 13, why is it slightly better to use `aes(x = color, y = cut)` instead of `aes(x = cut, y = color)`?
+
+**ANSWER:**
+
+It's slightly better to use 'aes(x = color, y = cut)' instead of 'aes(x = cut, y = color)' because it displays the greater values at the top of the plot. Additionally, because color is more of a categorical variable, since the measurement of the cut is continuous in that it ranges, it is better to put the more continuous variable on the y-axis. Finally, the cut options are longer words, so when they are displayed on the y-axis, it appears to read. 
+
+### Exercise 15 
+
+Use `geom_tile()` together with `dplyr` to explore how average flight delays vary by destination and month of year. What makes the plot hard to read? Improve the plot.
+
+```{r}
+flights %>%
+  group_by(month, dest) %>%
+  summarise(arr_delay = mean(arr_delay, na.rm = TRUE)) %>%
+  ggplot(aes(x = month, y = dest, fill = arr_delay)) +
+  geom_tile() +
+  labs(x = "Month", y = "Destination", fill = "Arrival Delay")
+
+#airports I've been to
+my_dest <- c('SAN', 'IAD', 'ORD', 'OMA', 'FLL', 'JAX', 'TPA', 'BWI', 'MCO')
+
+flights %>% 
+  filter(dest %in% my_dest) %>% 
+  group_by(month, dest) %>%
+  summarise(arr_delay = mean(arr_delay, na.rm = TRUE)) %>%
+  ggplot(aes(x = factor(month), y = dest, fill = arr_delay)) +
+  geom_tile() +
+  labs(x = "Month", y = "Destination", fill = "Arrival Delay")
+```
+**ANSWER:**
+
+Initially, the first graph is incredible hard to read and analyze. For one, there are too many destinations present so they're jumbled and impossible to read. I improved the plot by filtering the destinations to airports that I have been to, in order to visualize how delays vary based on the month of the year at airports I have flown in. Additionally, the months are labeled in increments of 2.5, instead of each month clearly labeled. I added 'factor()' within the aesthetic mappings to make each month clearly labeled. With these fixes, the plot is much more digestable, and we can see that September seems to have the lowest average delays throughout all the airports. 
+
+### Exercise 16
+
+Use the `smaller` dataset defined below for this exercise. Visualize the distribution of `carat` broken down by `price`. Construct 2 graphics, one using `cut_width()` and the other using `cut_number()`.
+
+```{r}
+#| label: ex-16
+
+smaller <- diamonds %>% 
+  filter(carat < 3)
+
+ggplot(smaller, aes(x = price, color = cut_width(carat, 0.3))) +
+  geom_freqpoly()
+
+ggplot(smaller, aes(x = price, color = cut_number(carat, 10))) +
+  geom_freqpoly()
+```
+
+### Exercise 17
+
+How does the distribution of `price` differ for very large diamonds (`carat` $\ge$ 3)? Is this result surprising? Why or why not?
+
+```{r}
+larger <- diamonds %>% 
+  filter(carat >= 3)
+
+ggplot(larger, aes(x = price, color = cut_width(carat, 0.2))) +
+  geom_freqpoly()
+```
+**ANSWER:**
+The result is fairly surprising. I thought that the larger diamonds would have have less variance, but it appears even the larger diamonds (`carat` $\ge$ 3) can vary in price. However, the largest of all the diamonds, meaning the greatest carats, are only on the higher end of the price spectrum, which is not surprising. 
+
+### Exercise 18
+
+Combine two of the techniques you've learned to visualize the combined distribution of `cut`, `carat`, and `price`.
+
+```{r}
+diamonds %>% 
+  ggplot(aes(x = cut_number(carat, 5), y = price, color = cut)) +
+  geom_boxplot() + 
+  labs(x = "carat")
+```
+
