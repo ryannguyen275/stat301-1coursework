@@ -1,0 +1,157 @@
+---
+title: "L10 Factors"
+subtitle: "Data Science 1 with R (STAT 301-1)"
+author: "Ryan Nguyen"
+
+format:
+  html:
+    toc: true
+    embed-resources: true
+    code-fold: show
+    link-external-newwindow: true
+    
+execute:
+  warning: false
+  
+from: markdown+emoji  
+---
+
+## Overview
+
+The goal of this lab is to learn how to deal with factors in R, specifically within the tidyverse (although many of these methods can be applied with base R functions as well). Factors are used to work with categorical variables, or variables that have a fixed and known set of possible values. We'll use the `forcats` package, which provides tools for dealing with categorical variables. 
+
+For more information on the `forcats` package, see [`forcats` tidyverse homepage](http://forcats.tidyverse.org/reference/index.html).
+
+## Load Packages
+
+```{r}
+#| label: load-pkgs
+
+# Loading package(s)
+library(tidyverse, quietly = T)
+
+```
+
+## Datasets 
+
+We will be using the `gss_cat` dataset that is included in the `forcats` package. To view the documentation for the dataset, use `?gss_cat`.
+
+## Exercises
+
+### Exercise 1 
+
+Create a bar chart to explore the distribution of `rincome` (reported income). What makes the default bar chart hard to understand? Improve the bar chart.
+
+```{r}
+income_lvl <- c("Lt $1000", "$1000 to 2999", "$3000 to 3999", 
+                "$4000 to 4999", "$5000 to 5999", "$6000 to 6999", 
+                "$7000 to 7999", "$8000 to 9999", "$10000 - 14999", 
+                "$15000 - 19999", "$20000 - 24999", "$25000 or more",
+                "Don't know", "No answer", "Not applicable", "Refused")
+
+gss_clean <- gss_cat %>% 
+  mutate(rincome = factor(rincome,
+                          levels = income_lvl))
+
+ggplot(gss_clean, aes(x = rincome))+
+  geom_bar() +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1))
+
+```
+
+**ANSWER:**
+There area few issue with the bar chart. One, the labels on the x-axis are hard to read. Additionally, it does not appear sequentially and the answers that include `refused`, `don't know`, and `no answer` are mixed in with the numbers, so we want to make sure we reorder them so we can read the visualization. 
+
+### Exercise 2
+
+What is the most common `relig` in this survey? What’s the most common `partyid`?
+
+```{r}
+gss_cat %>% 
+  group_by(relig) %>% 
+  count() %>% 
+  arrange(desc(n))
+
+gss_cat %>% 
+  group_by(partyid) %>% 
+  count() %>% 
+  arrange(desc(n))
+```
+
+**ANSWER:**
+The most common `relig` in this survey is Protestant, and the most common `partyid` is Independent.
+
+### Exercise 3
+
+Which `relig` does `denom` (denomination) apply to? Create a visualization to find out.
+
+```{r}
+ggplot(gss_cat, aes(x = relig, fill = denom)) +
+  geom_bar() +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1))
+```
+**ANSWER:**
+According to the visualization, `denom` mainly applies to Protestant, and also Christian. 
+
+### Exercise 4
+
+There are some suspiciously high numbers in `avg_tvhours` (mean or average of `tvhours`). Since the mean is not robust to outliers, it is not a good summary of this variable. Create a graphic similar to the one below, but use a more appropriate summary of `tvhours`.  
+
+```{r}
+#| label: ex-04
+
+# data wrangling
+relig_summary <- gss_cat %>%
+  group_by(relig) %>%
+  summarise(
+    age = median(age, na.rm = TRUE),
+    avg_tvhours = median(tvhours, na.rm = TRUE),
+    n = n()
+  )
+
+# bar plot
+relig_summary %>%
+  mutate(relig = fct_reorder(relig, avg_tvhours)) %>%
+  ggplot(aes(avg_tvhours, relig)) +
+    geom_point()
+```
+
+### Exercise 5
+
+How have the proportions of people who identify as Democrat, Republican, and Independent changed over the time period from 2000 to 2014? Build a visualization to display this information. You should also write a few sentences to summarize the trends within the graphic.
+
+```{r}
+gss_party <- gss_cat %>%
+  mutate(political = fct_collapse(partyid,
+                                other = c("No answer", "Don't know", "Other party"),
+                                rep = c("Strong republican", "Not str republican"),
+                                ind = c("Ind,near rep", "Independent", "Ind,near dem"),
+                                dem = c("Not str democrat", "Strong democrat"))) %>% 
+  group_by(year) %>% 
+  mutate(count = n()) %>% 
+  group_by(year, political) %>% 
+  mutate(prop = n()/count)
+
+gss_party %>% 
+  ggplot(aes(year, prop, color = political)) +
+  geom_line() + 
+  scale_x_continuous(breaks = c(2000:2014)) +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1))
+  
+```
+
+### Exercise 6
+
+Demonstrate how to collapse `rincome` into a smaller set of categories.
+
+```{r}
+
+gss_income <- gss_cat %>%
+  mutate(incomes = fct_collapse(rincome,
+                                other = c("No answer", "Don't know", "Refused", "Not applicable"),
+                                lower = c("Lt $1000", "$1000 to 2999", "$3000 to 3999", "$4000 to 4999"),
+                                middle = c("$5000 to 5999", "$6000 to 6999", "$7000 to 7999", "$8000 to 9999"),
+                                high = c("$10000 - 14999","$15000 - 19999", "$20000 - 24999", "$25000 or more")))
+
+gss_income
+```
