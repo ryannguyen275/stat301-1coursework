@@ -1,0 +1,308 @@
+---
+title: "L07 Tidy Data"
+subtitle: "Data Science 1 with R (STAT 301-1)"
+author: "Ryan Nguyen"
+
+format:
+  html:
+    toc: true
+    embed-resources: true
+    code-fold: show
+    link-external-newwindow: true
+    
+execute:
+  warning: false
+  
+from: markdown+emoji  
+---
+
+## Overview
+
+The goal of this lab is to learn what it means to be a "tidy" dataset and how to tidy messy datasets utilizing the `tidyr` package -- a core member of the `tidyverse`. 
+
+[`tidyr` package home page](http://tidyr.tidyverse.org/)
+
+[pivoting vignette](https://tidyr.tidyverse.org/articles/pivot.html)
+
+## Load Packages
+
+```{r}
+#| label: load-pkgs
+
+# Loading package(s)
+library(tidyverse, quietly = T)
+library(nycflights13)
+```
+
+## Datasets
+
+All datasets are either defined inline or provided within the core `tidyverse` packages (`table1`, `table2`, `table4a`, `table4a`, `who`).
+
+## Exercises
+
+### Exercise 1
+
+Follow these four steps to compute the `rate` per 10,000 once using only `table2`, and again using `table4a + table4b`:
+
+1.  Extract the number of TB cases per country per year.
+2.  Extract the matching population numbers per country per year.
+3.  Divide case numbers by population numbers and multiply by 10000.
+4.  Store in a new `tibble`.
+
+Which representation is easiest to work with? Which is hardest? Why?
+
+```{r}
+# using table2
+table2_wide <- pivot_wider(table2, 
+            id_cols = c(country, year),
+            names_from = type, 
+            values_from = count)
+
+table2_rate <- table2_wide %>% 
+  mutate(rate = 10000*cases/population) %>% 
+  as_tibble()
+
+# using table4a and table4b
+table4a_long <- table4a %>% 
+  pivot_longer(c(`1999`, `2000`), 
+               names_to = "year", 
+               values_to = "cases")
+
+table4b_long <- table4b %>% 
+  pivot_longer(c(`1999`, `2000`), 
+               names_to = "year", 
+               values_to = "population")
+
+table4 <- merge(table4a_long, table4b_long, by = c("country", "year"))
+
+table4_rate <- table4 %>% 
+  mutate(rate = 10000*cases/population) %>% 
+  as_tibble()
+
+```
+**ANSWER:**
+table2 was easier to work with because all of the data was present in one tibble, we just had to pivot it wider in order to move the cases and populations into their own columns. On the other hand, table4a and table4b were halves of the dataset, so we had to merge them together after pivoting them longer. 
+
+### Exercise 2 
+
+Recreate the plot below showing the change in cases over time using `table2` instead of `table1`. What do you need to do first?
+
+```{r}
+#| label: ex-02
+
+# Change over time in number of TB cases by country
+ggplot(table1, aes(year, cases)) + 
+  geom_line(aes(group = country), colour = "grey50") + 
+  geom_point(aes(colour = country))
+
+ggplot(table2_wide, aes(year, cases)) + 
+  geom_line(aes(group = country), colour = "grey50") + 
+  geom_point(aes(colour = country))
+```
+
+**ANSWER:**
+In order to recreate the plot using table2, we had to pivot it wider in order to make it tidy. 
+
+### Exercise 3
+
+Why does the provided code fail? Fix it.
+
+```{r}
+#| label: ex-03
+#| error: true
+
+table4a %>% 
+  pivot_longer(c(`1999`, `2000`), names_to = "year", values_to = "cases")
+```
+**ANSWER:**
+The provided code fails because we were missing backticks around `1999` and `2000`. Since they are non-syntactic names (because they don’t start with a letter), we have to surround them in backticks when putting them into pivot_longer().
+
+### Exercise 4
+
+What happens if you use `pivot_wider()` on this table so that we have a dataset with 3 columns (`responent_name`, `age`, `height`)? 
+
+Fix the issue by adding a new column.
+
+```{r}
+#| label: ex-04
+
+# dataset/table
+people <- tribble(
+  ~respondent_name,  ~key,    ~value,
+  #-----------------|--------|------
+  "Phillip Woods",   "age",       45,
+  "Phillip Woods",   "height",   186,
+  "Phillip Woods",   "age",       50,
+  "Jessica Cordero", "age",       37,
+  "Jessica Cordero", "height",   156
+)
+
+people$time <- c("t1", "t1", "t2", "t1", "t1")
+
+people2 <- tribble(
+  ~respondent_name,  ~key,    ~value, ~id,
+  #-----------------|--------|------|--------|
+  "Phillip Woods",   "age",       45, "t1",
+  "Phillip Woods",   "height",   186, "t1", 
+  "Phillip Woods",   "age",       50, "t2",
+  "Jessica Cordero", "age",       37, "t1",
+  "Jessica Cordero", "height",   156, "t1" 
+)
+
+pivot_wider(people2, 
+            id_cols = c(respondent_name, id),
+            names_from = key,
+            values_from = value)
+```
+**ANSWER:**
+When using `pivot_wider()` on this table, it outputs an error since there are two observations for Phillip Woods with two different ages. We can fix this issue by adding another column.
+
+### Exercise 5
+
+Tidy the simple tibble of [M&M](https://en.wikipedia.org/wiki/M%26M%27s) data below. Do you need to make it wider or longer? What are the variables in your tidy version?
+
+```{r}
+#| label: ex-05
+
+# simple tibble of M&M data
+mm_data <- tribble(
+  ~mm_type, ~blue, ~orange,	~green,	~yellow, ~brown, ~red, ~cyan_blue,
+  "plain",  6,     18,      12,	    6,       7,	     7,    NA,
+  "peanut", NA,	   11,	    9,	    1,	     12,	   8,    15
+)
+
+mm_data %>% pivot_longer(c(blue, orange, yellow, green, brown, red, cyan_blue),
+                         names_to = "color",
+                         values_to = "count") %>% 
+  pivot_wider(id_cols = c(color),
+              names_from = mm_type,
+              values_from = count)
+```
+**ANSWER:**
+We had to make the tibble both longer and wider. The variables in the tidy version are "color", "plain", and "peanut".
+
+### Exercise 6
+
+Both `unite()` and `separate()` have a `remove` argument. What does it do? The default value for `remove` is `TRUE`, why would you set it to `FALSE`? 
+
+**ANSWER:**
+The `remove` argument in `unite()` and `separate()` removes input columns from the output data frame, and you would set it to `FALSE` if you wanted to keep the old variables as well as the old ones.  
+
+### Exercise 7 
+
+The case study of data from the [*2014 World Health Organization Global Tuberculosis Report*](http://www.who.int/tb/country/data/download/en/) produces a lot of useful data (`who`) --- `data` sub-directory contains the codebook for `who`. However, the format is difficult to work with, so the authors walk you through the process of tidying the data. The tidying process uses this nice concise code:
+
+```{r}
+#| label: ex-07-code
+#| eval: true
+
+# tidying who
+who %>%
+  pivot_longer(
+    cols = c(new_sp_m014:newrel_f65), 
+    names_to = "code", 
+    values_to = "value",
+    values_drop_na = TRUE
+  ) %>% 
+  mutate(code = stringr::str_replace(code, "newrel", "new_rel")) %>%
+  separate(code, c("new", "var", "sexage")) %>% 
+  select(-new, -iso2, -iso3) %>% 
+  separate(sexage, c("sex", "age"), sep = 1)
+```
+
+:::{.callout-important}
+Insert a comment following each `#` in the code below that explains the purpose or objective of the line of code directly below it.
+::::
+
+```{r}
+#| label: ex-07-comments
+
+# tidy who
+who_tidy <- who %>%
+  # pivoting together the variables from `new_sp_m014` to `newrel_f65`, naming the values to `code` and using the values from `value`.
+  pivot_longer(
+    cols = c(new_sp_m014:newrel_f65), 
+    names_to = "code", 
+    values_to = "value",
+    values_drop_na = TRUE
+  ) %>% 
+  # replacing characters "newrel" with "new_rel"
+  mutate(code = stringr::str_replace(code, "newrel", "new_rel")) %>%
+  # separating the values in each code to split at the underscore
+  separate(code, c("new", "var", "sexage")) %>% 
+  # dropping the "new", "iso2", "iso3" columns since they're redundant
+  select(-new, -iso2, -iso3) %>% 
+  # separating sex into sex and age by splitting after the first character
+  separate(sexage, c("sex", "age"), sep = 1)
+
+who_tidy
+```
+
+### Exercise 8
+
+In the WHO case study, the authors set `values_drop_na.rm = TRUE` to make it easier to check that they had the correct values. Is this reasonable? Think about how missing values are represented in this dataset. Are there implicit missing values? What's the difference between `NA` and zero in this dataset? 
+
+```{r}
+who_na <- who %>% 
+  pivot_longer(
+    cols = c(new_sp_m014:newrel_f65), 
+    names_to = "code", 
+    values_to = "value",
+    values_drop_na = FALSE
+  ) %>% 
+  mutate(code = stringr::str_replace(code, "newrel", "new_rel")) %>%
+  separate(code, c("new", "var", "sexage")) %>% 
+  select(-new, -iso2, -iso3) %>% 
+  separate(sexage, c("sex", "age"), sep = 1)
+
+# how many na values
+nrow(filter(who_na, is.na(value)))
+
+# are they recording 0's in value or is that a reason for NA
+nrow(filter(who_na, value == 0))
+
+# helps confirms 0's are being recorded and missing values are most likely NA
+
+who_years<- who_na %>% 
+  group_by(country) %>% 
+  summarize(min = min(year),
+            max = max(year))
+
+who_years
+```
+
+
+**ANSWER:**
+It's reasonable to set `values_drop_na.rm = TRUE` and to drop the missing values, because they are actually missing. The dropped missing values are represented explicitly, as they are flagged with NA in the dataset. It appears as though the 0's are being recorded as zeroes. We also have years missing that are represented implicitly, where countries just didn't have data recorded for certain years. 
+
+### Exercise 9
+
+The authors of the WHO case study claimed that `iso2` and `iso3` were redundant with `country`. Confirm this claim. 
+
+```{r}
+select(who, country, iso2, iso3) %>%
+  distinct() %>%
+  group_by(country) %>%
+  filter(n() > 1)
+```
+
+**ANSWER:**
+If `iso2` and `iso3` are redundant with `country`, then there would be only one distinct combination of the 3, which is true since the code above returns no observations. This makes sense since `iso2` and `iso3` are the 2 and 3 letter ISO country codes. 
+
+### Exercise 10 
+
+For each level of `country`, `year`, and `sex`, compute the total number of cases of TB (using the WHO case study data). Construct an informative visualization.
+
+```{r}
+who_tidy %>%
+  group_by(country, year, sex) %>%
+  summarize(cases = sum(value)) %>%
+  unite(country_sex, country, sex, remove = FALSE) %>% 
+  ggplot(mapping = aes(x = year, y = cases, group = country_sex)) +
+  geom_line() +
+  facet_wrap( ~sex )
+```
+
+
+
+
