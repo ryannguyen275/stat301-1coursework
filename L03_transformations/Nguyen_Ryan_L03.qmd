@@ -1,0 +1,395 @@
+---
+title: "L03 Data Transformation"
+subtitle: "Data Science 1 with R (STAT 301-1)"
+author: "Ryan Nguyen"
+
+format:
+  html:
+    toc: true
+    self-contained: true
+    code-fold: show
+    link-external-newwindow: true
+    
+execute:
+  warning: false
+  
+from: markdown+emoji 
+---
+
+
+## Load packages
+
+```{r}
+#| label: load-pkgs
+
+# Loading package(s)
+library(dplyr, quietly = T)
+library(nycflights13)
+library(ggplot2)
+```
+
+## Datasets 
+
+This lab utilizes the `flights` dataset contained in the `nycflights13` package. Documentation/codebook can be accessed with `?fllights`, provided the `nycflights13` package has been installed and then loaded into the current R session.   
+
+## Exercises
+
+### Exercise 1
+
+Why does this code not work?
+
+```{r}
+#| label: ex-01
+#| eval: false
+
+my_variable <- 10
+my_varıable
+
+#> Error: object 'my_varıable' not found
+```
+
+Look carefully! This may seem like an exercise in pointlessness, but training your brain to notice even the tiniest difference will pay off when programming.
+
+**ANSWER:**
+This code does not work because there is a typo with the 'i' in 'my_variable'. It cannot find the second thing printed because it does not exist/has not been assigned.
+
+### Exercise 2
+
+Tweak each of the following R commands so that they run correctly:
+
+```{r}
+#| label: ex-02
+#| eval: false
+
+# Command 1
+ggplot(data = mpg) + 
+  geom_point(mapping = aes(x = "displ", y = "hwy"))
+
+# Command 2
+filter(mpg, cyl == 8)
+
+# Command 3
+filter(diamonds, carat > 3)
+```
+<br>
+
+### Exercise 3
+
+Find all flights that:
+
+a. Had an arrival delay of two or more hours
+b. Flew to Houston (`IAH` or `HOU`)
+c. Were operated by United, American, or Delta
+d. Departed in summer (July, August, and September)
+e. Arrived more than two hours late, but didn't leave late
+f. Were delayed by at least an hour, but made up over 30 minutes in flight
+g. Departed between midnight and 6am (inclusive)
+
+**ANSWERS:**
+
+```{r}
+# part a
+flights %>% 
+  filter(arr_delay >= 120) %>% 
+  head()
+```
+
+```{r}
+# part b
+flights %>% 
+  filter(dest == "IAH" | dest == "HOU")
+```
+
+```{r}
+# part c
+flights %>% 
+  filter(carrier == "UA" | carrier == "AA" | carrier == "DL")
+```
+
+```{r}
+# part d
+flights %>% 
+  filter(month == 7 | month == 8 | month == 9)
+```
+
+```{r}
+# part e
+flights %>% 
+  filter(arr_delay >= 120 & dep_delay <= 0 )
+```
+
+```{r}
+# part f
+flights %>% 
+  filter(dep_delay >= 60, (dep_delay - arr_delay) > 30)
+```
+
+```{r}
+# part g
+flights %>% 
+  filter(dep_time == 2400 | dep_time <= 600)
+```
+
+
+### Exercise 4
+
+A useful `dplyr` filtering helper is `between()`. Rewrite your code to Exercise 3 (d) using `between()`? If you did use it, then indicate that you did.
+
+**ANSWER:**
+```{r}
+d_flight_2 <- filter(flights, between(month, 7, 9))
+```
+
+### Exercise 5
+
+How many flights have a missing `dep_time`? What other variables are missing? What might these rows represent?
+
+```{r}
+filter(flights, is.na(dep_time))
+```
+
+**ANSWER:**
+There are 8,255 flights missing 'dep_time'. The other variables missing are 'dep_delay', 'arr_time', 'arr_delay', and 'air_time'. These rows might represent cancelled flights or flights whose times were not documented. 
+
+### Exercise 6
+
+How could you use `arrange()` to sort the dataset so that flights missing `arr_delay` are at the start/top of the tibble/table? *Hint:* Use `is.na()`
+
+```{r}
+flights %>% 
+  arrange(desc(is.na(arr_delay)))
+```
+
+
+### Exercise 7
+
+Sort `flights` to find the most delayed flights. Find the flights that left earliest. Name the flight at top of the list (e.g. New York City JFK to Chicago ORD).
+
+```{r}
+flights %>% 
+  arrange(dep_delay) %>% 
+  select(dep_delay, origin, flight, dest, time_hour)
+```
+
+**ANSWER:**
+On December 7th, Flight 97 left 43 minutes ahead of schedule traveling from New York City JFK to Denver DEN.
+
+### Exercise 8 
+
+Sort flights to find the fastest flights. Name the flight at top of the list (e.g. New York City JFK to Chicago ORD).
+
+```{r}
+flights %>% 
+  arrange(air_time) %>% 
+  select(air_time, origin, flight, dest, time_hour)
+```
+**ANSWER:**
+On January 16, Flight 4368 and Flight 463 Newark EWR to Windsor Locks BDL took the fastest flight, of just 20 minutes.
+
+### Exercise 9 
+
+Which flights traveled the longest? Which traveled the shortest? Name the flight at top of the list (e.g. New York City JFK to Chicago ORD).
+
+```{r}
+flights %>% 
+  arrange(distance) %>% 
+  select(distance, origin, flight, dest, time_hour) %>% 
+  head(3)
+
+flights %>% 
+  arrange(desc(distance)) %>% 
+  select(distance, origin, flight, dest, time_hour) %>% 
+  head(3)
+```
+**ANSWER:**
+Flight 51 traveled the longest, a total of 4983 miles from New York JFK to Honolulu HNL. Flight 1632 traveled the shortest, just 17 miles from Newark EWR to New York LGA.
+
+### Exercise 10 
+
+Brainstorm at least 3 ways to select `dep_time`, `dep_delay`, `arr_time`, and `arr_delay` from `flights`. *Hint:* Use helper functions
+
+```{r}
+flights %>% 
+  select(starts_with("dep") | starts_with ("arr"))
+
+flights %>% 
+  select("dep_time" | "arr_time" | ends_with ("delay"))
+
+flights %>% 
+  select("dep_time" | "arr_time" | contains ("dep_delay") | contains ("arr_delay"))
+
+varis <- c("dep_time", "arr_time", "dep_delay", "arr_delay")
+flights %>% 
+  select(any_of(varis))
+```
+
+
+### Exercise 11
+What does the `any_of()` function do? Why might it be helpful in conjunction with the vector below?
+
+```{r}
+#| label: ex-11
+
+vars <- c("year", "month", "day", "dep_delay", "arr_delay")
+
+flights %>% 
+  select(any_of(vars))
+```
+
+**ANSWER:**
+The 'any_of()' function will take a vector and give you all of the variables listed in it. It is flexible, just checking through all variations. If vars are there will not give error, unlike all_of().
+
+### Exercise 12 
+
+Does the result of running the code below surprise you? Which default setting for `contains()` causes this to happen? What should happen if you run the code, but with the default setting changed?
+```{r}
+#| label: ex-12
+
+select(flights, contains("TIME"))
+
+select(flights, contains("TIME", ignore.case = FALSE))
+```
+
+**ANSWER:**
+The code does not surprise me. The default setting in 'contains()' is 'ignore.case = TRUE', meaning that it does not care if the "TIME" is capitalized or not. If we changed the default code to 'ignore.case = FALSE', then it will take capitalization into account and not return these columns since they are not capitalized.
+
+### Exercise 13 
+
+Currently `dep_time` and `sched_dep_time` are convenient to look at, but hard to compute with because they’re not really continuous numbers. Convert them to a more convenient representation of number of minutes since midnight.
+
+```{r}
+mutate(flights,
+       dep_time = (dep_time %/% 100) * 60 + (dep_time %% 100),
+       sched_dep_time = (sched_dep_time %/% 100) * 60 + (sched_dep_time %% 100))
+```
+
+
+
+### Exercise 14 
+
+Compare `air_time` with `arr_time - dep_time`. What do you expect to see? What do you see? What do you need to do to fix it?
+
+```{r}
+mutate(flights,
+       time_air = arr_time - dep_time) %>% 
+  select(flight, air_time, time_air, arr_time, dep_time)
+```
+**ANSWER:**
+When subtracting departure time from arrival time, one would expect to find the exact air time for a specific flight. However, it is important to remember that the arrival and departure times are currently in HHMM format, meaning they are not in numerical minutes. For example, if a flight departed at 8:30 and arrived at 9:30, it would compute 100 because it takes 930-830, when in reality the flight time was 60 minutes. Thus, we have to convert the arrival and departure times into numerical values from midnight before subtracting them, which would then give us the air time. Additionally, some values may be off because it does not take into account time zones, as well as planes arriving past midnight. 
+
+### Exercise 15
+
+Compare `dep_time`, `sched_dep_time`, and `dep_delay`. How would you expect those three numbers to be related?
+
+```{r}
+flights %>% 
+  mutate(time_dep = sched_dep_time + dep_delay) %>% 
+  select (dep_time, time_dep, sched_dep_time, dep_delay)
+```
+
+
+**ANSWER:**
+I would expect that 'dep_time' is equal to 'sched_dep_time' plus 'dep_delay', since the time of actual departure is the scheduled departure time plus the amount of delay. However, this might not always be correct, again, since the times are in HHMM format. This means that when a flight is leaving at 6:00 and leaves 2 minutes early, the calculation would output 598, when in reality, it departed at 5:58, or 558. 
+
+
+### Exercise 16
+Find the 10 most delayed flights using the `min_rank()` function.
+
+```{r}
+filter(flights, min_rank(desc(arr_delay))<=10)
+```
+**ANSWER:**
+The 10 most delayed flights, found using the 'min_rank()' function are Flight 51 from JFK to HNL, Flight 3695 from EWR to ORD, Flight 172 from EWR to MIA, Flight 2119 from LGA to MSP, Flight 2119 from LGA to MSP, Flight 2391 from JFK to TPA, Flight 3744 from EWR to ORD, Flight 3535 from JFK to CMH, Flight 3075 from JFK to CVG, Flight 989 from JFK to CVG, Flight 895 from LGA to ATL, and Flight 177 from JFK to SFO. 
+
+### Exercise 17 
+
+Come up with another approach that will give you the same output as `not_cancelled %>% count(dest)` and `not_cancelled %>% count(tailnum, wt = distance)` (without using `count()`). Dataset `not_cancelled` was created in this section of the book, but for your convenience the code is provided.
+
+```{r}
+#| label: ex-17
+
+not_cancelled <- flights %>% 
+  filter(!is.na(dep_delay), !is.na(arr_delay))
+
+not_cancelled %>% count(tailnum, wt = distance)
+
+not_cancelled %>%
+  group_by(tailnum) %>%
+  summarise(n = sum(distance))
+```
+
+### Exercise 18
+
+Look at the number of cancelled flights per day. Is there a pattern? Is the proportion of cancelled flights related to the average delay?
+
+```{r}
+flights_cancelled <- flights %>% 
+  mutate(date = as.Date(time_hour)) %>% 
+  group_by(date) %>% 
+  summarize(num_cancelled = sum (is.na(arr_delay)))
+
+ggplot(flights_cancelled, aes(x = date, y = num_cancelled)) +
+  geom_line()
+
+flights_prop <- flights %>%
+  mutate(date = as.Date(time_hour),
+         cancelled = (is.na(arr_delay) | is.na(dep_delay))) %>%
+  group_by(date) %>%
+  summarise(prop_cancelled = mean(cancelled),
+    avg_arr_delay = mean(arr_delay, na.rm = TRUE))
+
+ggplot(flights_prop, aes(x = avg_arr_delay, y = prop_cancelled)) + 
+  geom_point()
+
+```
+**ANSWER:**
+When looking at the number of cancelled flights per day, there does not seem to be a large pattern. The number of flights cancelled spikes up and down, however there was a large spike near February or March of 2013. This might be from snow storms of inclement weather. However, there does seem to be a positive relationship between the proportion of cancelled flights to the average delay, as average delays increase, so do the proportion of cancelled flights. This makes sense as things are more delayed, the more likely it is that it is cancelled. 
+
+### Exercise 19 
+
+Which plane (`tailnum`) has the worst on-time record?
+
+```{r}
+flights %>%
+  filter(!is.na(arr_delay) | !is.na(dep_delay)) %>% 
+  group_by(tailnum) %>%
+  mutate(flights_on_time = (arr_delay < 0)) %>% 
+  summarize(flights_on_time = mean(flights_on_time),
+            n=n()) %>% 
+  filter(n > 15) %>% 
+  arrange(flights_on_time)
+```
+The plane ('tailnum') with the worst on-time record, which I interpreted as the plane with the lowest proportion of on-time flights, was N290AT, with a proportion of .125 flights on time, giving it the worst on-time record. I filtered out flights that flew less than 15 flights as well, to account for the fact that some flights will have a 0% on time record if they have flown so little flights. 
+
+### Exercise 20 
+
+For each destination, compute the total minutes of delay. For each flight, compute the proportion of the total delay for its destination.
+
+```{r}
+flights %>%
+  filter(arr_delay > 0, !is.na(arr_delay)) %>%
+  group_by(dest) %>% 
+  mutate(total_delay = sum(arr_delay),
+            prop_delay = arr_delay/total_delay) %>% 
+  select(tailnum, arr_delay, dest, total_delay, prop_delay, time_hour)
+
+```
+
+
+### Exercise 21 
+
+For each plane, count the number of flights before the first delay of greater than 1 hour.
+```{r}
+not_cancelled <- flights %>% 
+  filter(!is.na(dep_delay), !is.na(arr_delay))
+
+not_cancelled %>% 
+  select(tailnum, year, month, day, dep_time, arr_delay) %>% 
+  arrange(tailnum, year, month, day, dep_time) %>% 
+  group_by(tailnum) %>% 
+  mutate(
+    flights_before_delay = cumsum(arr_delay > 60)) %>% 
+  summarise(n_flights = sum(flights_before_delay == 0))
+
+```
+
