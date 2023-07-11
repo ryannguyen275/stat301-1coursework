@@ -1,0 +1,260 @@
+---
+title: "L12 Pipes and Functions"
+subtitle: "Data Science 1 with R (STAT 301-1)"
+author: "Ryan Nguyen"
+
+format:
+  html:
+    toc: true
+    embed-resources: true
+    code-fold: show
+    link-external-newwindow: true
+    
+execute:
+  warning: false
+  
+from: markdown+emoji  
+---
+
+## Overview
+
+The goal of this lab is to improve your programming skills and develop an appreciation for writing code. Remember that code is a communication tool, and that being able to write clear and concise code is extremely important. 
+
+## Packages & Datasets
+
+It shouldn't be necessary to load all the `tidyverse` packages, but you may want to anyway since you'll likely want to build functions that can be piped and that play nicely with the `tidyverse`. The only required tidyverse package is `dplyr`, which contains the `case_when()` function, but you could opt to use `dplyr::case_when()` to avoid loading the package.
+
+There are no required datasets for this lab.
+
+## Exercises
+
+### Exercise 1 
+
+In the second variant of `rescale01()` (see the book), infinite values are left unchanged. Rewrite `rescale01()` so that `-Inf` is mapped to 0 and `Inf` is mapped to 1.
+
+```{r}
+
+rescale01 <- function(x) {
+  x <- ifelse(x == -Inf, 0, x)
+  x <- ifelse(x == Inf, 1, x)
+  
+  rng <- range(x, na.rm = TRUE, finite = TRUE)
+  (x - rng[1]) / (rng[2] - rng[1])
+}
+
+x <- c(-Inf, 0, 5, 10, Inf)
+rescale01(x)
+
+```
+**ANSWER:**
+We mapped -Inf and Inf to 0 and 1 respectively, interpreting it to map them prior to inputting the values into the rest of the function.
+
+
+### Exercise 2
+
+Practice turning the following code snippets into functions. Think about what each function does. What would you call it? How many arguments does it need? Can you rewrite it to be more expressive or less duplicative?
+
+```{r}
+#| label: ex-02
+
+x <- c(20, 4, 5, 20, NA)
+
+# finds the proportion of NA values to # of values
+mean(is.na(x))
+
+prop_NA <- function(x) {
+  x <- mean(is.na(x))
+  x
+}
+
+prop_NA(x)
+
+# finds the proportion of x to the sum of all values
+x / sum(x, na.rm = TRUE)
+
+prop_sum <- function(x) {
+  x <- x/sum(x, na.rm = TRUE)
+  x
+}
+prop_sum(x)
+
+# finds the coefficient of variation, or the ratio of standard deviation to the mean
+sd(x, na.rm = TRUE) / mean(x, na.rm = TRUE)
+
+co_var <- function(x) {
+  x <- sd(x, na.rm = TRUE) / mean(x, na.rm = TRUE)
+  x
+}
+
+co_var(x)
+
+```
+
+### Exercise 3
+
+Write `both_na()`, a function that takes two vectors of the same length and returns the number of positions that have an `NA` in both vectors.
+
+```{r}
+x <- c(20, NA, 5, 4, NA)
+y <- c(NA, NA, 4, 2, NA)
+z <- c(NA, 3, 1 , 2, 1)
+
+both_na <- function(x, y) {
+  stopifnot(length(x) == length(y))
+  length(which(is.na(x) & is.na(y)))
+}
+
+both_na(x, y)
+both_na(x, z)
+both_na(y, z)
+```
+
+
+### Exercise 4
+
+Read the source code for each of the following three functions. Describe what each function does, and then brainstorm better names for them.
+
+```{r}
+#| label: ex-04
+
+# function 1: tests whether the prefix in the argument matches the prefix in the string
+has_prefix <- function(string, prefix) {
+  substr(string, 1, nchar(prefix)) == prefix
+}
+
+has_prefix(c("reduce", "reuse", "ryan"), "re")
+
+# function 2: removes the last element of x, but only if length is greater than 1. If length is 1, it returns NULL
+remove_last <- function(x) {
+  if (length(x) <= 1) return(NULL)
+  x[-length(x)]
+}
+
+remove_last(c(1, 2, 3))
+remove_last(c(2))
+
+# function 3: replicates y until it is the same length as x
+match_length <- function(x, y) {
+  rep(y, length.out = length(x))
+}
+
+match_length(c(1, 2, 3, 3, 2), c(4, 5))
+```
+
+### Exercise 5
+
+Make a case for why `norm_r()`, `norm_d()` (etc.) might be better names than `rnorm()`, `dnorm()`. Then make a case for the opposite.
+
+**ANSWER:**
+The functions using `norm_r()` and `norm_d()` groups the family of functions related to the normal distribution. On the other hand, with `rnorm()` and `dnorm()`, related functions are grouped into families by the actions they perform. r* functions will always sample from distributions: rnorm, rbinom, runif, rexp, while d* function calculate the probability density or mass of a distribution: dnorm, dbinom, dunif, dexp.
+
+### Exercise 6
+
+Write a greeting function that says "good morning", "good afternoon", or "good evening", depending on the time of day. 
+
+*Hint*: Try using a `time` argument that defaults to `lubridate::now()`. That will make it easier to test your function. 
+
+```{r}
+greet_me <- function(time = lubridate::now()){
+  stopifnot(class(time) %in% c("POSIXct", "POSIXt"))
+  
+  hour <- lubridate::hour(time)
+  
+  return(
+    dplyr::case_when(
+    hour < 12 ~ 'Good Morning', 
+    12 <= hour & hour < 18 ~ 'Good Afternoon',
+    18 <= hour ~ 'Good Evening'
+    )
+  )
+}
+
+greet_me()
+```
+
+### Exercise 7 
+
+Implement a `fizzbuzz` function. It should take a single number as input. If the number is divisible by three, the function should return "fizz". If the number is divisible by five, it should return "buzz". If the number is divisible by three and five, it returns "fizzbuzz". Otherwise, it returns the number. 
+
+*Hint*: Don't try and write the function all at once, and consider using `case_when()`.
+
+```{r}
+fizzbuzz <- function(x){
+  return(
+    dplyr::case_when(
+      x%%5!=0 & x%%3 == 0 ~ 'fizz',
+      x%%5==0 & x%%3 != 0 ~ 'buzz',
+      x%%5==0 & x%%3 == 0 ~ 'fizzbuzz',
+      TRUE ~ as.character(x)
+      )
+  )
+}
+
+fizzbuzz(3)
+fizzbuzz(4)
+fizzbuzz(5)
+fizzbuzz(15)
+
+```
+
+
+### Exercise 8 
+
+Demonstrate how to use `case_when()` to simplify the nested if-else statements below.
+
+```{r}
+#| label: ex-08
+#| eval : FALSE
+if (temp <= 0) {
+  "freezing"
+} else if (temp <= 10) {
+  "cold"
+} else if (temp <= 20) {
+  "cool"
+} else if (temp <= 30) {
+  "warm"
+} else {
+  "hot"
+}
+
+case_when(
+  temp <= 0 ~ 'freezing',
+  0 < temp <= 10 ~ 'cold',
+  10 < temp <= 20 ~ 'cool',
+  20 < temp <= 30 ~ 'warm',
+  30 < temp ~ 'hot'
+)
+```
+
+### Exercise 9 
+
+What does this `switch()` call do? What happens if `x` is "e"?
+```{r}
+#| label: ex-09
+x <- "e"
+y <- "b"
+
+base::switch(x, 
+  a = ,
+  b = "ab",
+  c = ,
+  d = "cd"
+)
+
+base::switch(y, 
+  a = ,
+  b = "ab",
+  c = ,
+  d = "cd"
+)
+```
+
+**ANSWER:**
+If we provide a value for an option, it will return the right hand side. If you have an option with no value, it will return the next available answer. If it is not an option, like when `x` is "e", it will not return anything or null.
+
+### Exercise 10
+
+The default value for the `method` argument to `cor()` is `c("pearson", "kendall", "spearman")`. What does that mean? What value is used by default?
+
+**ANSWER:**
+The `method` argument to `cor()` is used to indicate which correlation coefficient or covariance is to be computed. The default value being `c("pearson", "kendall", "spearman")` means that the argument can take one of those 3 values. The "pearson" value is used by default.
