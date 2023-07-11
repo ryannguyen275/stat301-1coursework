@@ -1,0 +1,441 @@
+---
+title: "L09 Strings"
+subtitle: "Data Science 1 with R (STAT 301-1)"
+author: "Ryan Nguyen"
+
+format:
+  html:
+    toc: true
+    embed-resources: true
+    code-fold: show
+    link-external-newwindow: true
+    
+execute:
+  warning: false
+  
+from: markdown+emoji  
+---
+
+## Overview
+
+The goal of this lab is to learn and understand string manipulation in R. You’ll learn the basics of how strings work and how to create them by hand, but the focus of this chapter will be on regular expressions, or regexps for short (regex for even shorter). Regular expressions are useful because strings usually contain unstructured or semi-structured data, and regexps are a concise language for describing patterns in strings. You'd be surprised how often you'll need to use string manipulation in R, whether for text analysis, efficiently loading data files/objects, or extracting information from the internet or standardized forms.
+
+These resources may help:
+
+* [`stringr` tidyverse homepage](http://stringr.tidyverse.org/articles/stringr.html)
+* [regex tutorial](https://regexone.com/)
+* [regex practice/game](https://regexcrossword.com/)
+
+## Load Packages
+
+```{r}
+#| label: load-pkgs
+
+# Loading package(s)
+library(tidyverse, quietly = T)
+library(stringr)
+
+```
+
+## Datasets 
+
+All datasets are found within downloaded R packages. New packages include `stringr`,`htmlwidgets`, and `stringi`.
+
+## Exercises
+
+:::{.callout-important}
+The output for this assignment becomes extremely long and hinders presentation. Please set `results: hide` for your R code chunks where appropriate. Use your best judgment in deciding when to set `results: hide`. Remember that you can break the R code for exercises into many separate code chunks, so you can hide the long parts of solution output without hiding the shorter parts.
+:::
+
+### Exercise 1
+
+In R code that doesn't make use the `stringr` package, you'll often see `paste()` and `paste0()`. What's the difference between the two functions? What `stringr` function are they equivalent to? How do `paste()` and `paste0()` differ in their handling of `NA` from their `stringr` equivalents?
+
+```{r}
+paste("I", "love", "stats", NA, sep = "-")
+paste0("I", "love", "stats", NA)
+str_c("I", "love", "stats", NA, sep = "-")
+```
+
+
+**ANSWER:**
+`paste()` and `paste0()` both convert its arguments into character strings, and concatenates them (separates them by the string given by `sep`). However, `paste0()` concatenates the arguments into a single string, with the elements being separated by the value of collapse. The `stringr` function they are equivalent to is `str_c`. `paste()` and `paste0()` will convert NA to the string "NA" and treat it as any other character vector, whereas `str_c` will return NA if there is any NA values.
+
+### Exercise 2
+
+In your own words, describe the difference between the `sep` and `collapse` arguments to `str_c()`. Then demonstrate this difference by using the provided strings, `x` and `y`, to produce the single string `"I heart data science!"` or `"I tolerate data science!"` (your choice). Produce the string once using `sep` and once using `collapse`. 
+
+```{r}
+#| label: ex-02
+
+# Provided strings
+x <- "I"
+y <- "data science!"
+```
+
+```{r}
+str_c(x, y, sep = " heart ")
+str_c(c(x, y), collapse =  " heart ")
+
+```
+
+**ANSWER:**
+The `sep` is the string to insert between the input vectors, while the `collapse` is the string used to separate any elements of the character vector of length one. 
+
+### Exercise 3
+
+Use `str_length()` and `str_sub()` to extract the middle character from the provided strings. Make a decision (and explain your decision) regarding how to handle a string that has an even number of characters.
+
+```{r}
+#| label: ex-03
+
+# Provided strings
+st1 <- "data"
+st2 <- "science"
+```
+
+
+```{r}
+str_sub(st1, start = ceiling(str_length(st1)/2), 
+        end = floor(str_length(st1)/2 + 1))
+
+str_sub(st2, start = ceiling(str_length(st2)/2), 
+        end = floor(str_length(st2)/2 + 1))
+
+```
+
+**ANSWER:**
+For a string with an even number of characters, I decided to extract the middle two characters to act as the middle. 
+
+### Exercise 4
+
+What does `str_trim()` do? What's the opposite of `str_trim()`?
+
+**ANSWER:**
+
+`str_trim()` removes whitespace from start and end of a string. The opposite is `str_pad()`.
+
+### Exercise 5
+
+How would you match the sequence `"'\`?
+
+```{r}
+string <- "\"\'\\"
+writeLines(string)
+str_view(string, pattern = "\"\'\\\\")
+```
+
+
+### Exercise 6
+
+How would you match the literal string `"$^$"`?
+```{r}
+string <- "$^$"
+writeLines(string)
+str_view(string, pattern = "\\$\\^\\$")
+```
+
+
+### Exercise 7
+
+Given the corpus of common words in `stringr::words`, create regular expressions to match all words that:
+
+a. Start with "y".
+b. End with "x".
+c. Are exactly three letters long. (Don't cheat by using `str_length()`!)
+
+*Hint:* Consider changing `stringr::words` into a tibble so you can use data wrangling to keep the words that meet the stated criteria. 
+
+```{r}
+words_tibble <- words %>% 
+  as_tibble()
+```
+
+
+```{r}
+# starts with "y"
+words_tibble %>% 
+  filter(str_detect(value, pattern = "^y"))
+```
+
+```{r}
+# ends with "x"
+words_tibble %>% 
+  filter(str_detect(value, pattern = "x$"))
+```
+
+```{r}
+# exactly 3 letters
+
+words_tibble %>% 
+  filter(str_detect(value, "^...$"))
+  
+```
+
+
+### Exercise 8 
+
+Given the corpus of common words in `stringr::words`, create regular expressions to match all words that:
+
+a. Start with a vowel.
+b. That only contain consonants. (Hint: thinking about matching "not"-vowels.)
+c. End with `ed`, but not with `eed`.
+d. End with `ing` or `ise`.
+
+*Hint:* Consider changing `stringr::words` into a tibble so you can use data wrangling to keep the words that meet the stated criteria. 
+
+```{r}
+# start with a vowel
+
+words_tibble %>% 
+  filter(str_detect(value, pattern = "^[aeiou]"))
+```
+```{r}
+# contains only consonants
+
+words_tibble %>% 
+  filter(str_detect(value, pattern = "[aeiou]", negate = TRUE))
+
+```
+```{r}
+# ends with `ed` but not `eed`
+
+words_tibble %>% 
+  filter(str_detect(value, pattern = "[^e]ed$"))
+```
+
+```{r}
+# ends with `ing` or `ise`
+
+words_tibble %>% 
+  filter(str_detect(value, pattern = "(ing|ise)$"))
+```
+
+
+### Exercise 9 
+
+Use the corpus of common words in `stringr::words` to empirically verify:
+
+* the rule "`i` before `e` except after `c`".
+* whether `q` is always followed by `u`.
+
+```{r}
+
+words_tibble %>% 
+  filter(str_detect(value, pattern = "(cei|[^c]ie)"))
+```
+
+
+```{r}
+# whether `q` is always followed by `u`
+
+words_tibble %>% 
+  filter(str_detect(value, pattern = "q."))
+```
+
+### Exercise 10
+
+Create a regular expression that will match telephone numbers as **commonly written** in the US. 
+
+Note that there are several valid solutions for this, depending on your definition of "as commonly written in the US."
+
+```{r}
+pattern3 <- "\\(]*\\d{3}[)]-*\\d{3}-*\\d{4}"
+
+phone <- "(123)-456-7890"
+
+str_view(phone, pattern3)
+
+str_view(c("(847)-291-8645"), pattern3)
+
+```
+
+
+### Exercise 11
+
+Describe in your own words what these regular expressions match. 
+
+*Hint*: Read carefully to determine whether these are a regular expression or a string that defines a regular expression.
+
+* `^.*$`
+* `"\\{.+\\}"`
+* `\d{4}-\d{2}-\d{2}`
+* `"\\\\{4}"`
+
+
+**ANSWER:**
+`"^.*$"` matches strings with any characters of any length. `"\\{.+\\}"` matches strings in curly brackets. `\d{4}-\d{2}-\d{2}` is a regular expression that can match dates but the string `"\\d{4}-\\d{2}-\\d{2}"` matches strings with 4 digits-2 digits-2 digits. `"\\\\{4}"` matches four backslashes. 
+
+### Exercise 12
+
+Use the corpus of common words in `stringr::words` to create regular expressions to match all words that:
+
+a. Start with three consonants.
+a. Have three or more vowels in a row.
+
+```{r}
+words_tibble %>% 
+  filter(str_detect(words, pattern = "^[^aeiou]{3}"))
+```
+```{r}
+words_tibble %>% 
+  filter(str_detect(words, pattern = "[aeiou]{3,}"))
+```
+
+
+*Hint:* Consider changing `stringr::words` into a tibble so you can use data wrangling to keep the words that meet the stated criteria. 
+
+### Exercise 13
+
+Describe in words what these expressions will match:
+
+* `(.)\\1\\1`
+* `"(.)(.)\\2\\1"`
+* `(..)\1`
+* `"(.).\\1.\\1"`
+
+
+**ANSWER:**
+`"(.)\1\1"` matches any characters repeated three times in a row. `"(.)(.)\\2\\1"` matches two characters followed by the same two characters but in reverse order. `"(..)\1"` matches all repeated characters. `"(.).\\1.\\1"` matches characters followed by any character, original character, any other character, and original character.
+
+### Exercise 14
+
+Use `stringr::words` to accomplish the following tasks. *Hint*: You might want to change `stringr::words` to a tibble.
+
+* Identify which word(s) have the highest number of vowels. (As an example, the word `achieve` has four vowels.)
+* Calculate the proportion of vowels for each word and display the dataset to determine which words have the highest proportion of vowels. 
+* Calculate the ratio of consonants to vowels for each word. What do you observe about the words that have the maximum possible ratio?  
+
+```{r}
+# getting vector with length of all words in words
+num_letters <- str_length(words)
+
+# getting the count of vowels in each word in words
+num_vowels <- str_count(words, "[aeiou]")
+
+# creating a tibble that lists the word, number of letters in that word, and number of vowels in that word
+letters_tbl <- tibble(words, num_letters, num_vowels)
+
+# taking only the words with max amount of vowels (which is 5)
+letters_tbl %>% 
+  filter(num_vowels == max(num_vowels))
+
+# proportion of vowels
+letters_tbl %>% 
+  mutate(prop = num_vowels/num_letters) %>% 
+  arrange(desc(prop))
+
+# ratio of constants to vowels
+letters_tbl %>% 
+  mutate(prop = (num_letters - num_vowels)/num_vowels) %>% 
+  filter(prop == max(prop))
+
+```
+**ANSWER:**
+The words that have the maximum possible ratio are all 3 letters or less and have no vowels in them. 
+
+### Exercise 15
+
+From the Harvard `sentences` data, extract:
+
+* the first word from each sentence.
+* all words ending in `ing`.
+
+```{r}
+# first word of each sentence
+
+# transfer the vector sentences into a tibble
+sentences %>% 
+  as.tibble() %>% 
+  # rename value to sentence
+  rename(sentence = value) %>% 
+  # create a new variable that extracts only the first word by using "[A-Za-z0-9]+[\\s\\,]?"
+  mutate(first_word = str_trim(str_extract(sentence, "[A-Za-z0-9]+[\\s\\,]?")))
+  
+```
+
+```{r}
+# ending in 'ing'
+sentences_ing <- sentences %>% 
+  # make sentences into a tibble
+  as.tibble() %>% 
+  # renames value to sentence 
+  rename(sentence = value) %>% 
+  # extracting words ending in ing
+  mutate(words_ending_in_ing = str_extract_all(sentence, "[A-Za-z]+(ing)[\\s\\.\\,]"),
+         # replacing punctuation with nothing and then removing extra white space from that word 
+         words_ending_in_ing = map(words_ending_in_ing, function(x) {      str_trim(str_replace(x, "[:punct:]", ""))
+           })
+         ) %>%  
+  select(words_ending_in_ing) %>%
+  unnest()
+sentences_ing
+```
+
+
+### Exercise 16
+
+What are the five most common words in `sentences`?
+
+```{r}
+sentences_list <- sentences %>% 
+  #any instance of a space, split it into a new index in the vector holding that particular word, splits string and creates lists within each index
+  str_split(("\\s")) %>% 
+  unlist() %>%
+  # removes white spaces 
+  str_trim() %>% 
+  # replace instances on punctuation with nothing (helps us recognizing words as the same)
+  str_replace("[:punct:]", "") %>% 
+  # making every work lower case (recognizes differently capitalized words as the same words)
+  str_to_lower() %>% 
+  as.tibble() %>% 
+  #grouping by each word 
+  group_by(value) %>% 
+  # counting number of times a word appears 
+  summarize(num_appearances = n()) %>% 
+  arrange(desc(num_appearances)) %>% 
+  head(5)
+
+sentences_list 
+```
+
+**ANSWER:**
+The five most common words in `sentences` are "the", "a", "of", "to", and "and". 
+
+### Exercise 17
+
+Find the `stringi` functions that:
+
+* count the number of words.
+* find duplicated strings.
+* generate random text.
+
+**ANSWER:**
+`stri_count_words()` counts the number of words, `stri_duplicated()` finds duplicated strings, and `stri_random_strings()` generates random text. 
+
+### Exercise 18
+
+Describe what this code does in your own words.
+
+```{r}
+#| label: ex-18
+dir(path = "../", pattern = "\\.Rmd$", recursive = TRUE)
+```
+**ANSWER:**
+In this code, the `dir()` function lists all of the .Rmd files in the sub directory above the one we’re working in. `pattern =` then says that within that path, look for file names that end in Rmd. `recursive` finds just the first file that ends in Rmd. if set to TRUE.
+
+## Challenges
+
+**Challenges are optional for all students, but we recommend trying them out!**
+
+### Challenge 1 
+
+NOT REQUIRED
+
+Write a function that turns a character vector of the format `c("a", "b", "c")` into a string of the format `a, b, and c`. Think carefully about what your function should do if it is given a vector of length 0, 1, or 2.  
+
+### Challenge 2 
+
+NOT REQUIRED
+
+Switch the first and last letters of all the words in the corpus `stringr::words`. Which of the resulting strings are still words?
