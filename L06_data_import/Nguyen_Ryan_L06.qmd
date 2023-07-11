@@ -1,0 +1,190 @@
+---
+title: "L06 Data Import"
+subtitle: "Data Science 1 with R (STAT 301-1)"
+author: "Ryan Nguyen"
+
+format:
+  html:
+    toc: true
+    embed-resources: true
+    code-fold: show
+    link-external-newwindow: true
+    
+execute:
+  warning: false
+  
+from: markdown+emoji  
+---
+
+## Overview
+
+The goal of this lab is to learn the how to utilize the `readr` package, a member of the `tidyverse`, to load flat files (e.g., `csv` & `txt`) --- [`readr` package home page](http://readr.tidyverse.org/articles/readr.html)
+
+## Load Packages
+
+```{r}
+#| label: load-pkgs
+
+# Loading package(s)
+library(tidyverse, quietly = T)
+```
+
+## Datasets 
+
+All datasets are either coded inline or contained in the `data` sub-directory within the downloaded zip file.     
+
+## Exercises
+
+### Exercise 1 
+
+Demonstrate how to read in `TopBabyNamesByState.txt` contained in the `data` sub-directory using the appropriate function from `readr` package. After reading in the data, determine the top male and female names in 1984 for South Dakota. 
+
+```{r}
+BabyNames <- read_delim("data/TopBabyNamesByState.txt", delim = "|",
+                        show_col_types = FALSE)
+
+BabyNames %>% 
+  filter(state == "SD", year == 1984) %>% 
+  head(2)
+
+
+
+```
+**ANSWER**
+The top male and female names in 1984 for South Dakota are Matthew and Jessica.
+
+### Exercise 2
+
+What is the main difference between `read_csv()`, `read_csv2()`, and `read_tsv()`? 
+
+They all accept the parameters `na`, `col_names`, and `trim_ws`. Please describe in your own words what each of these parameters control.  
+
+**ANSWER:**
+ `read_csv()`, `read_csv2()`, and `read_tsv()` all read flat file data, but `read_csv()` reads comma separated values, `read_csv2()` uses ; for the field separator and , for the decimal point, and `read_tsv()` reads tab separated values. `col_names` decides the column names; if it is TRUE, the first row will be the names, if FALSE, they'll be generated automatically, or you can input character vector of column names. `na` interprets missing values, and you can put `character()` to indicate there are no missing values. `trim_ws` decides if leading and trailing whitespace should be trimmed from every field before parsing. 
+
+### Exercise 3
+
+Read in the fixed width file `fwf_example.txt` contained in the sub-directory `data`. We have provided the column names so the final dataset has appropriate names. You may want to look at the dataset in a text editor to get an idea of what you are dealing with. (Hint: Use `fwf_widths()` for `col_positions` and the `skip` parameter where appropriate.)
+
+```{r}
+#| label: ex-3
+
+# Column names.
+column_names <- c(
+  "Entry", "Per.", "Post Date", "GL Account", "Description", "Srce.", 
+  "Cflow", "Ref.", "Post", "Debit", "Credit", "Alloc."
+  )
+column_widths <- c(8, 4, 12, 13, 26, 6, 4, 10, 13, 19, 13, 4)
+```
+
+**ANSWER:**
+```{r}
+fwf_example <- read_fwf(file = "data/fwf_example.txt",
+         col_positions = fwf_widths(widths = column_widths,
+                                    col_names = column_names),
+         skip = 2,
+         show_col_types = FALSE)
+fwf_example
+```
+
+
+### Exercise 4 
+
+Generate the correct format string to parse each of the following dates and times:
+
+```{r}
+#| label: ex-4
+
+# various date and time string formats
+d1 <- "January 1, 2010"
+d2 <- "2015-Mar-07"
+d3 <- "06-Jun-2017"
+d4 <- c("August 19 (2015)", "July 1 (2015)")
+d5 <- "12/30/14" # Dec 30, 2014
+t1 <- "1705"
+t2 <- "11:15:10.12 PM"
+```
+
+**ANSWER:**
+```{r}
+parse_date(d1, "%B %d, %Y")
+parse_date(d2, "%Y-%b-%d")
+parse_date(d3, "%d-%b-%Y")
+parse_date(d4, "%B %d (%Y)")
+parse_date(d5, "%m/%d/%y")
+parse_time(t1, "%H%M")
+parse_time(t2, "%I:%m:%OS %p")
+```
+
+### Exercise 5
+
+Read in and store `cdc.txt` from the `data` sub-directory. 
+
+* Create a graphic that compares the distribution of weights for each gender. 
+* Write out a copy of the dataset to the `data` sub-directory as a tab deliminated text file named `cdc_tab.txt`.
+* Write out a copy of the dataset to the `data` sub-directory as an RDS file named `cdc.rds`.
+* List some benefits of writing a dataset to an RDS file type.
+
+```{r}
+cdc <- read_delim("data/cdc.txt", show_col_types = FALSE)
+
+ggplot(cdc, aes(x = weight, y = gender)) +
+  geom_boxplot() +
+  labs(title = "Distributions of Weights by Gender")
+
+write_tsv(cdc, "data/cdc_tab.txt")
+
+write_rds(cdc, "data/cdc.rds")
+
+```
+**ANSWER:**
+An RDS file type is normally smaller than a text file, which means it takes up less storage space and it is quicker to load. It also preserves data types and classes, getting rid of the need to redefine them after loading the file. Lastly, RDS supports list-columns, while some types do not. 
+
+### Exercise 6
+
+What types of files do the packages `haven` and `readxl` deal with?
+
+**ANSWER:**
+`haven` reads SPSS, Stata, and SAS files, and `readxl` reads both excel files (.xls and .xlsx).
+
+### Exercise 7
+
+What function in `janitor` helps you deal with non-syntactic column names in R and and also ensures column names are systematically handled? Demonstrate its use.
+
+**ANSWER:**
+The `clean_names()` function helps us deal with non-syntactic column names in R and ensures column names are systematically handled.
+
+```{r}
+
+annoying <- tibble(
+  `1` = 1:10,
+  `2` = `1` * 2 + rnorm(length(`1`))
+  )
+
+annoying
+
+annoying2 <- tibble(
+  `1` = 1:10,
+  `2` = `1` * 2 + rnorm(length(`1`))
+  ) %>% 
+  janitor::clean_names()
+
+annoying2
+```
+
+
+### Exercise 8
+
+Suppose a data file takes a long time to read in, which can be a problem since we will need to read it in every time we come back to work on it. How could you increase the read in speed of this dataset for future R sessions?
+
+**ANSWER:**
+
+One way to increase the read in speed of this dataset is to save it as an RDS. This will make it load in quicker since it's smaller, and it will preserve the data types. You can also use `read_lines()` to just read into a character vector of lines or even a character vector of length 1 with `read_file`.
+
+## Challenge
+
+**Required for graduate students, but not for undergraduate students.**
+
+Extract 2016 total population estimates for each state and DC from `cc-est2016-alldata.csv` contained in the `data` subdirectory. Force RStudio to display all rows and have them arranged from largest to smallest in population. 
+
+*Hint: May want to read the `cc-est2016-alldata.pdf` for details.*   
